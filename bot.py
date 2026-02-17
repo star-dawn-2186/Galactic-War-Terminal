@@ -160,7 +160,6 @@ async def eta_loop():
                         (19, 23, 'limegreen', 'EU Peak')
                     ]
 
-            # Get the unique days in your data range
             unique_days = sorted(list(set([d.date() for d in dateax])))
 
             for day in unique_days:
