@@ -1,0 +1,6 @@
+discord.py
+imageio
+numpy
+psutil
+tqdm
+matplotlib
