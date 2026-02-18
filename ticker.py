@@ -31,8 +31,8 @@ def create_stock_ticker_gif(stock_data, output_path="stock_ticker.gif", fps=50, 
 
     # 1. Setup Fonts
     try:
-        font = ImageFont.truetype("arial.ttf", 30)
-        small_font = ImageFont.truetype("arial.ttf", 25)
+        font = ImageFont.truetype("gww-font.ttf", 30)
+        small_font = ImageFont.truetype("gww-font.ttf", 25)
     except:
         print("Falling back to default font")
         font = ImageFont.load_default()
