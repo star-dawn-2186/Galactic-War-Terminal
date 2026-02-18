@@ -33,8 +33,8 @@ def create_stock_ticker_gif(stock_data, output_path="stock_ticker.gif", fps=50, 
     try:
         font = ImageFont.truetype("gww-font.ttf", 30)
         small_font = ImageFont.truetype("gww-font.ttf", 25)
-    except:
-        print("Falling back to default font")
+    except Exception as e:
+        print(f"{e}\nFalling back to default font")
         font = ImageFont.load_default()
         small_font = ImageFont.load_default()
 
