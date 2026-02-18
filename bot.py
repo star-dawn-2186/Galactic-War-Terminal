@@ -108,6 +108,8 @@ async def eta_loop():
         return
     
     # Cyberstan Offensive Special
+    if not datetime.datetime.now().minute == 0:
+        return
     if api.get("globalResources"):
         health_bar = api.get("globalResources")[0]
         reinforcements_left = health_bar['currentValue'] / 2000000
