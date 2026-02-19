@@ -58,6 +58,25 @@ def format_planet_data(names, static_txt, effects):
         print(effect)
     print('-'*20)
 
+def format_region_data(regions, name):
+    result = f"## Region data for: {name.upper()}\n"
+    for region in regions:
+        region_txt = '### ' + region['name'].upper() + '\n'
+        eq_size = region['eq_size']
+        region_txt += f' - Equivalent size: **{eq_size}** base planets\n'
+        decay = region['decay']
+        region_txt += f' - Decay: **{decay}%**\n'
+        progress = region['progress']
+        if progress == 100:
+            progress = 'Fully Liberated'
+        else:
+            progress = str(progress) + '%'
+        region_txt += f' - Current progress: **{progress}**\n'
+        pop = region['pop']
+        region_txt += f' - Current relative pop%: **{pop}%**\n'
+        result += region_txt
+    return result
+
 def convert_time(t, api):
     wartime = api.get('time')
     current = int(time.time())

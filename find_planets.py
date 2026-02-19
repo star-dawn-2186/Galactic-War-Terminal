@@ -92,24 +92,31 @@ def find_planet_or_region_by_name(api_data, warinfo_data, name, planet_names=pla
         print(f"No planet or region found matching \"{name}\".")
         return None
 
-def get_stats_by_name(api_data, planet_data, warinfo_data, name):
+def name_to_idx(name, planet_data):
     idx = -1
-    factions = ["","Human", "Terminid", "Automaton", "Illuminate"]
-    total_players = 0
     try:
         idx = int(name)
         try:
             name = planet_data.get(str(idx))['name']
         except:
-            return None
+            return None, None
     except:
         for pID in planet_data:
             if planet_data.get(pID)['name'].lower() == name.lower():
                 idx = pID
                 break
         if idx == -1:
-            return None
+            return None, None
+    return int(idx), name
         
+def get_stats_by_name(api_data, planet_data, warinfo_data, name):
+    
+    idx, name = name_to_idx(name, planet_data)
+    if idx is None:
+        return None
+    
+    total_players = 0    
+    factions = ["","Human", "Terminid", "Automaton", "Illuminate"]    
     warinfo = warinfo_data.get('planetInfos')
     
     pop = api_data.get('planetStatus')[int(idx)]['players']
@@ -223,3 +230,36 @@ def get_effects_by_idx(api_data, idx):
     effect_lst = list(set(effect_lst))
     return effect_lst, effect_ids
 
+def get_regions_by_name(api_data, warinfo_data, planet_data, name):
+    idx, Pname = name_to_idx(name, planet_data)
+    if idx is None:
+        return None
+    
+    region_status = [region for region in api_data.get('planetRegions') if region['planetIndex'] == idx]
+    region_info = [region for region in warinfo_data.get('planetRegions') if region['planetIndex'] == idx]
+    planet_players = api_data.get('planetStatus')[idx]['players']
+    region_dicts = []
+    for region in region_status:
+        region_idx = region['regionIndex']
+        
+        for r in region_info:
+            if r['regionIndex'] == region_idx:
+                maxhealth = r['maxHealth']
+                # dmg = r['damageMultiplier']
+                region_hash = r['settingsHash']
+                break
+        eq_size = round(maxhealth / 1e6, 2)
+        health = region['health']
+        progress = round((1 - (health / maxhealth)) * 100, 2)
+        regen = region['regerPerSecond'] # istg i did not make a typo there, the API literally says regerpersecond instead of regen, what the fuck
+        decay = round(regen * 3600 / maxhealth * 100, 2)
+        name = region_names[str(region_hash)]
+        players = region['players']
+        pop = round(players / planet_players * 100, 2)
+        
+        region_dicts.append({'name': name,
+                             'eq_size': eq_size,
+                             'decay': decay,
+                             'progress': progress,
+                             'pop': pop})
+    return region_dicts, Pname

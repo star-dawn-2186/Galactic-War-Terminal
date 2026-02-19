@@ -4,7 +4,6 @@ __pycache__/*
 arial.ttf
 image.jpeg
 image.png
-*.json
+prev_health.json
 train_horse.py
-run_ticker_from_bot.py
 learn.py

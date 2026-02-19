@@ -367,7 +367,7 @@ async def get_command(ctx, *, name: str):
     if None in [data, planet, warinfo]:
         return await send_error_msg(ctx)
     stats = get_stats_by_name(data, planet, warinfo, name)
-    if stats == None:
+    if stats is None:
         return await ctx.reply("Unable to find planet.")
     static, names, name = stats
     id = static['id']
@@ -416,6 +416,23 @@ async def get_command(ctx, *, name: str):
         msg += "-# Planet unreachable or already liberated, Horse Index not available"
     await ctx.reply(msg)
 
+# Get Region stats from planet 
+@bot.command(name='get_region')
+@commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
+async def getregion_command(ctx, *, name: str):
+    data = await api_data()
+    planet = await planet_data()
+    warinfo = await warinfo_data()
+    if None in [data, planet, warinfo]:
+        return await send_error_msg(ctx)
+    regions, name = get_regions_by_name(data, warinfo, planet, name)
+    if regions is None:
+        return await ctx.reply("Unable to find planet.")
+    if regions == []:
+        return await ctx.reply("No currently active regions on this planet.")
+    result = format_region_data(regions, name)
+    return await ctx.reply(result)    
+    
 # Get Top Ten planet stats
 @bot.command(name="get_top")
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
@@ -723,5 +740,6 @@ async def submit_stats(ctx, idx:str):
 intents.message_content = True
 intents.guilds = True
 
-bot.run(TOKEN)
+if __name__ == '__main__':
+    bot.run(TOKEN)
 
