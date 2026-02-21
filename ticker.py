@@ -31,8 +31,8 @@ def create_stock_ticker_gif(stock_data, output_path="stock_ticker.gif", fps=50, 
 
     # 1. Setup Fonts
     try:
-        font = ImageFont.truetype("gww-font.ttf", 30)
-        small_font = ImageFont.truetype("gww-font.ttf", 25)
+        font = ImageFont.truetype("DOTMATRX.TTF", 30)
+        small_font = ImageFont.truetype("DOTMATRX.TTF", 25)
     except Exception as e:
         print(f"{e}\nFalling back to default font")
         font = ImageFont.load_default()
@@ -50,14 +50,14 @@ def create_stock_ticker_gif(stock_data, output_path="stock_ticker.gif", fps=50, 
         change, is_pos, decay, pop, faction = value
         
         # Format strings
-        c_str = f"▲{change}" if is_pos else f"▼{change}"
+        c_str = change
         c_col = up_color if is_pos else down_color
         if str(change) in ("0", "0.0", "0.0%"):
-            c_str, c_col = f"-{change}", neutral_color
+            c_col = neutral_color
 
         # Measure segments
         nw = temp_draw.textlength(name, font=font)
-        cw = temp_draw.textlength(c_str, font=small_font)
+        cw = temp_draw.textlength(c_str, font=font)
         dw = temp_draw.textlength(decay, font=small_font)
         pw = temp_draw.textlength(pop, font=small_font)
         
@@ -80,8 +80,8 @@ def create_stock_ticker_gif(stock_data, output_path="stock_ticker.gif", fps=50, 
     for e in prepared_entries:
         draw.text((x, 20), e['name'], fill=e['f_col'], font=font)
         curr_x = x + e['nw'] + 10
-        draw.text((curr_x, 20), f"{e['c_str']} | ", fill=e['c_col'], font=font)
-        curr_x += e['cw'] + 33
+        draw.text((curr_x, 20), f"{e['c_str']}", fill=e['c_col'], font=font)
+        curr_x += e['cw'] + 30
         draw.text((curr_x, 24), f"{e['decay']}", fill=e['f_col'], font=small_font)
         curr_x += e['dw'] + 22
         draw.text((curr_x, 24), e['pop'], fill=text_color, font=small_font)

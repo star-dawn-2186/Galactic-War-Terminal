@@ -292,10 +292,11 @@ async def ticker_loop():
     else:
         liblist = []
         for key in libdict:
-            if libdict[key][1]:
-                liblist.append([key, "▲"+libdict[key][0]])
-            else:
-                liblist.append([key, "▼"+libdict[key][0]])
+            # if libdict[key][1]:
+            #     liblist.append([key, "▲"+libdict[key][0]])
+            # else:
+            #     liblist.append([key, "▼"+libdict[key][0]])
+            liblist.append([key, libdict[key][0]])
         for ticker_channel in botconfig.config['TICKER_CHANNEL']['value']:
             latest = [msg async for msg in bot.get_channel(ticker_channel).history(limit=1)]
             if len(latest) == 0 or latest[0].author.id != bot.user.id:
