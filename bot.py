@@ -354,9 +354,12 @@ async def dss_voting_command(ctx):
     api = await api_data()
     if api is None:
         return await send_error_msg(ctx)
-    dss_dll = convert_time(api.get('spaceStations')[0]['currentElectionEndWarTime'], api)
-    dss_txt = await format_dss_votes()
-    await ctx.reply(f"DSS moves: <t:{dss_dll}:R>\n"+dss_txt)
+    try:
+        dss_dll = convert_time(api.get('spaceStations')[0]['currentElectionEndWarTime'], api)
+        dss_txt = await format_dss_votes()
+        await ctx.reply(f"DSS moves: <t:{dss_dll}:R>\n"+dss_txt)
+    except:
+        await ctx.reply("DSS data offline.")
 
 # Get Planet stats (Thanks Beef!)
 @bot.command(name="get")
@@ -603,11 +606,13 @@ async def ddl(ctx):
     if None in [api, mo_data]:
         return await send_error_msg(ctx)
     
-    dss_dll = convert_time(api.get('spaceStations')[0]['currentElectionEndWarTime'], api)
-    
-    mo_ddl = int(time.time()) + mo_data[0]['expiresIn']
-    await ctx.reply(f"Current MO ends: <t:{mo_ddl}:R>\n```<t:{mo_ddl}:R>```\nDSS moves: <t:{dss_dll}:R>\n```<t:{dss_dll}:R>```")
-
+    try:
+        dss_dll = convert_time(api.get('spaceStations')[0]['currentElectionEndWarTime'], api)
+        
+        mo_ddl = int(time.time()) + mo_data[0]['expiresIn']
+        await ctx.reply(f"Current MO ends: <t:{mo_ddl}:R>\n```<t:{mo_ddl}:R>```\nDSS moves: <t:{dss_dll}:R>\n```<t:{dss_dll}:R>```")
+    except:
+        await ctx.reply("DSS data offline.")
 # Send messages in selected channel
 @bot.command(name='send')
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")

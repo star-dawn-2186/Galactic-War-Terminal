@@ -220,10 +220,14 @@ def get_effects_by_idx(api_data, idx):
         if int(idx) in event['planetIndices']:
             for effect in event['effectIds']:
                 effect_lst.append(effect_names[str(effect)])
-    dss = api_data.get('spaceStations')[0]
-    if str(dss['planetIndex']) == str(idx):
-        for effect in dss['activeEffectIds']:
-            effect_lst.append(effect_names[str(effect)])
+    try:
+        dss = api_data.get('spaceStations')[0]
+        if str(dss['planetIndex']) == str(idx):
+            for effect in dss['activeEffectIds']:
+                effect_lst.append(effect_names[str(effect)])
+    except IndexError:
+        pass
+    
     
     # absolute cinema
     effect_lst = [i for i in effect_lst if not (i.endswith('(Enemies)') or i.endswith('(Marker)'))]

@@ -40,8 +40,6 @@ def create_stock_ticker_gif(stock_data, output_path="stock_ticker.gif", fps=50, 
 
     # 2. Pre-measure and build the "Ticker Tape"
     temp_draw = ImageDraw.Draw(Image.new('RGB', (1, 1)))
-    spacer = "   //   "
-    spacer_w = temp_draw.textlength(spacer, font=small_font)
     
     prepared_entries = []
     total_w = 0
@@ -61,7 +59,7 @@ def create_stock_ticker_gif(stock_data, output_path="stock_ticker.gif", fps=50, 
         dw = temp_draw.textlength(decay, font=small_font)
         pw = temp_draw.textlength(pop, font=small_font)
         
-        entry_w = int(nw + cw + (spacer_w * 2) + dw + pw + 50) # 50px gap between planets
+        entry_w = int(nw + cw + dw + pw + 62 + 50) # 50px gap between planets
         prepared_entries.append({
             'name': name, 'c_str': c_str, 'decay': decay, 'pop': pop,
             'c_col': c_col, 'f_col': faction_map.get(faction, faction_map['s']),
