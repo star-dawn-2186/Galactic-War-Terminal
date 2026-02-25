@@ -3,7 +3,8 @@ from datetime import datetime
 from utils import api_data, warinfo_data
 import os
 UPDATE_INTERVAL = 600
-FILENAME = "prev_health.json"
+p_FILENAME = "prev_health.json"
+r_FILENAME = "region_health.json"
 # logic:
 # get current health from status
 # get past health from stored
@@ -14,50 +15,101 @@ FILENAME = "prev_health.json"
 
 # omg thank you past joe i had no fucking clue what you wrote
 
-async def update_librate(filename=FILENAME):
+async def update_librate(p_filename=p_FILENAME, r_filename = r_FILENAME):
     status = await api_data()
     warinfo = await warinfo_data()
     
     if None in [status, warinfo]:
         print("api error")
         return
-    status = status.get('planetStatus')
-    warinfo = warinfo.get('planetInfos')
+    planet_status = status.get('planetStatus')
+    region_status = status.get('planetRegions')
+    planet_info = warinfo.get('planetInfos')
+    region_info = warinfo.get('planetRegions')
     
-    if not os.path.isfile(filename):
-        await init_savedhealth(filename)
-        print("Logs missing or corrupted, rebuilding...")
+    if not os.path.isfile(p_filename):
+        await init_savedhealth(p_filename,'p')
+        print("Planet logs missing or corrupted, rebuilding...")
         return 
     
-    with open(filename,'r') as f:
+    if not os.path.isfile(r_filename):
+        await init_savedhealth(r_filename,'r')
+        print("Region logs missing or corrupted, rebuilding...")
+        return
+        
+    with open(p_filename,'r') as f:
         healthdict = json.load(f)
-    for planet in status:
+    for planet in planet_status:
         health = int(planet['health'])
         prev_health = healthdict[str(planet['index'])][0]
         delta_health = prev_health - health
-        maxhealth = int(warinfo[planet['index']]['maxHealth'])
+        maxhealth = int(planet_info[planet['index']]['maxHealth'])
         healthp = delta_health / maxhealth * 100
         librate = round(healthp / (UPDATE_INTERVAL / 3600),2)
         healthdict[str(planet['index'])] = [health, librate]
-    with open(filename,'w') as f:
+    
+    with open(r_filename, 'r') as f:
+        regiondict = json.load(f)
+    
+    for region in region_status:
+        # regions fluctuate much more frequently than planets, and not all regions are shown in status
+        # so dynamically update regions? until all existing regions are in there
+        # shouldnt be too much for file size
+        pID = region['planetIndex']
+        idx = region['regionIndex']
+        health = region['health']
+        for r in region_info:
+            if r['planetIndex'] == pID and r['regionIndex'] == idx:
+                maxhealth = r['maxHealth']
+                break
+            
+        rID = f"{pID}:{idx}"
+        if rID not in regiondict:
+            regiondict[rID] = [health, 0]
+        prev_health = regiondict[rID][0]
+        delta_health = prev_health - health
+        healthp = delta_health / maxhealth * 100
+        if delta_health > 0.9 * maxhealth:
+            librate = 0
+        else:
+            librate = round(healthp / (UPDATE_INTERVAL / 3600),2)
+        regiondict[rID] = [health, librate]
+        
+    with open(p_filename,'w') as f:
         json.dump(healthdict, f, indent=4)
+    with open(r_filename, 'w') as f:
+        json.dump(regiondict, f, indent=4)
         
     now = datetime.now()
     print(f"{now}: updated librates")
 
-async def init_savedhealth(filename=FILENAME):
+async def init_savedhealth(filename=p_FILENAME, mode = 'p'):
     status = await api_data()
     if status is None:
         return
-    
-    status = status.get('planetStatus')
-    healthdict = {}
-    for planet in status:
-        healthdict[str(planet['index'])] = [planet['health'], 0]
-    with open(filename,'w') as f:
-        json.dump(healthdict, f, indent=4)
+    if mode == 'p':
+        status = status.get('planetStatus')
+        healthdict = {}
+        for planet in status:
+            healthdict[str(planet['index'])] = [planet['health'], 0]
+        with open(filename,'w') as f:
+            json.dump(healthdict, f, indent=4)
+            
+    elif mode == 'r':
+        status = status.get('planetRegions')
+        regiondict = {}
+        for region in status:
+            pID = region['planetIndex']
+            idx = region['regionIndex']
+            health = region['health']
+            rID = f"{pID}:{idx}"
+            regiondict[rID] = [health, 0]
+        with open(filename, 'w') as f:
+            json.dump(regiondict, f, indent=4)
+                
+        
 
-def get_librate_from_idx(idx, filename=FILENAME):
+def get_librate_from_idx(idx, filename=p_FILENAME):
     if not os.path.isfile(filename):
         print("Logs missing or corrupted, rebuilding...")
         return None
@@ -65,16 +117,24 @@ def get_librate_from_idx(idx, filename=FILENAME):
         healthdict = json.load(f)
     return healthdict[str(idx)][1]
 
+def get_region_librate_from_idx(rID, filename=r_FILENAME):
+    if not os.path.isfile(filename):
+        print("Logs missing or corrupted, rebuilding...")
+        return None
+    with open(filename, 'r') as f:
+        regiondict = json.load(f)
+    return regiondict[rID][1]
+
 # librate * 1% * total HP / planet pop% / region pop % = eff
 # TODO: implement that somehow
 
 # Regionless planets
 # Regions are left as an exercise to the reader
-async def calc_eff_from_idx(idx, filename=FILENAME):
+async def calc_eff_from_idx(idx, filename=p_FILENAME):
     if not os.path.isfile(filename):
         print("Logs missing or corrupted, rebuilding...")
         return None
-    librate = get_librate_from_idx(idx, FILENAME)
+    librate = get_librate_from_idx(idx, p_FILENAME)
     warinfo = await warinfo_data()
     status = await api_data()
     if None in [warinfo, status]:
@@ -84,6 +144,7 @@ async def calc_eff_from_idx(idx, filename=FILENAME):
     warinfo = warinfo.get('planetInfos')
     maxhealth = int(warinfo[idx]['maxHealth'])
     pop = status[idx]['players']
+    total_players = 0
     for planet in status:
         total_players += planet['players']
     pop = round(pop / total_players * 100)

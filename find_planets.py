@@ -1,5 +1,5 @@
 from static_data import region_names, planet_names, effect_names, planet_info
-from libcalc import get_librate_from_idx
+from libcalc import get_librate_from_idx, get_region_librate_from_idx
 import math
 def get_campaign_for_planet(api_data, idx):
     campaigns = api_data.get("campaigns")
@@ -238,6 +238,8 @@ def get_regions_by_name(api_data, warinfo_data, planet_data, name):
     idx, Pname = name_to_idx(name, planet_data)
     if idx is None:
         return None
+    warinfo = warinfo_data.get('planetInfos')
+    planet_maxhealth = warinfo[idx]['maxHealth']
     
     region_status = [region for region in api_data.get('planetRegions') if region['planetIndex'] == idx]
     region_info = [region for region in warinfo_data.get('planetRegions') if region['planetIndex'] == idx]
@@ -249,9 +251,12 @@ def get_regions_by_name(api_data, warinfo_data, planet_data, name):
         for r in region_info:
             if r['regionIndex'] == region_idx:
                 maxhealth = r['maxHealth']
-                # dmg = r['damageMultiplier']
+                dmg = r['damageMultiplier']
+                lib_bomb = maxhealth * dmg / planet_maxhealth
                 region_hash = r['settingsHash']
                 break
+        rID = f"{idx}:{region_idx}"
+        
         eq_size = round(maxhealth / 1e6, 2)
         health = region['health']
         progress = round((1 - (health / maxhealth)) * 100, 2)
@@ -261,9 +266,21 @@ def get_regions_by_name(api_data, warinfo_data, planet_data, name):
         players = region['players']
         pop = round(players / planet_players * 100, 2)
         
+        librate = get_region_librate_from_idx(rID)
+        if librate is None:
+            eta = "[CORRUPTED DATA, POSSIBLE AUTOMATON INTEFERENCE]"
+        elif librate > 0:
+            eta = (100 - progress) / librate
+        elif librate < 0:
+            eta = progress / librate
+        else:
+            eta = "Stalemate/Unavailable" 
+        
         region_dicts.append({'name': name,
                              'eq_size': eq_size,
                              'decay': decay,
                              'progress': progress,
-                             'pop': pop})
+                             'pop': pop,
+                             'eta': eta,
+                             'libbomb': lib_bomb})
     return region_dicts, Pname

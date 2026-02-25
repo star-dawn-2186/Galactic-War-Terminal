@@ -71,7 +71,22 @@ def format_region_data(regions, name):
             progress = 'Fully Liberated'
         else:
             progress = str(progress) + '%'
+            
+        eta = region['eta']
+        current = time.time()
+        if type(eta) == str:
+            etamsg = eta
+        elif float(eta) > 0:
+            etamsg = f"Full Liberation **<t:{int(current + eta * 3600)}:R>**"
+        elif float(eta) < 0:
+            etamsg = f"Full Withdrawal **<t:{int(current - eta * 3600)}:R>**"
+
         region_txt += f' - Current progress: **{progress}**\n'
+        region_txt += ' - ' + etamsg + '\n'
+        
+        lib_bomb = region['libbomb']
+        region_txt += f" - Liberation boost: **{int(lib_bomb * 100)}%**\n"
+        
         pop = region['pop']
         region_txt += f' - Current relative pop%: **{pop}%**\n'
         result += region_txt
