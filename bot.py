@@ -40,6 +40,12 @@ intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="$", intents=intents)
 botconfig = BotConfig()
 
+def custom_cooldown(message):
+    COOLDOWN = botconfig.config['COOLDOWN']['value']
+    if is_authorized(message):
+        return None
+    else:
+        return commands.Cooldown(1,COOLDOWN)
 
 def safe_parse_config(input_str):
     clean_input = input_str.strip()
@@ -363,7 +369,7 @@ async def dss_voting_command(ctx):
 
 # Get Planet stats (Thanks Beef!)
 @bot.command(name="get")
-@commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
+@commands.dynamic_cooldown(custom_cooldown, commands.BucketType.user)
 async def get_command(ctx, *, name: str):
     data = await api_data()
     planet = await planet_data()
@@ -375,13 +381,22 @@ async def get_command(ctx, *, name: str):
         return await ctx.reply("Unable to find planet.")
     static, names, name = stats
     id = static['id']
+    
+    has_region = static['has regions']
+    if not is_authorized(ctx):
+        for key in ['id', 'environmentals', 'dist', 'has regions']:
+            try:
+                static.pop(key)
+            except:
+                continue
+
     static_txt = []
     for key in static:
         if not (key == 'progress' or key == 'eta'):
             static_txt.append([key,str(static[key])])
     effects = get_effects_by_idx(data, id)[0]
     
-    score = horse_predict(static, effects)
+    
     
     eta = static['eta']
     progress = static['progress']
@@ -399,16 +414,26 @@ async def get_command(ctx, *, name: str):
         etamsg = f"**Full Liberation <t:{int(current + eta * 3600)}:R>**"
     elif float(eta) < 0:
         etamsg = f"**Full Withdrawal <t:{int(current - eta * 3600)}:R>**"
-    if static['has regions']:
+    if has_region:
         etamsg += "\n-# Regions detected, liberation calculator w/ Regions WIP"
     
     msg = f"## Planet Summary: {name.upper()}\n"
-    msg += f"### {names}\n"
+    
+    if is_authorized(ctx):
+        msg += f"### {names}\n"
+        
     msg += "-"*20 + '\n'
     msg += f"**{progress}% LIBERATED**\n{etamsg}\n"
     msg += "-"*20 + '\n'
     msg += "### Planet stats:\n"
     msg += f"```{tabulate(static_txt, colalign=('left',))}```\n"
+    print(msg)
+    if not is_authorized(ctx):
+        
+        return await ctx.reply(msg)
+    
+    
+    score = horse_predict(static, effects)
     msg += "### Planet Effects:\n - "
     if effects == []:
         msg += "No current effects detected.\n"
@@ -418,7 +443,17 @@ async def get_command(ctx, *, name: str):
         msg += f"### Horse Index (Blob Attractiveness):\n{score:.4f}"
     else:
         msg += "-# Planet unreachable or already liberated, Horse Index not available"
-    await ctx.reply(msg)
+            
+
+    return await ctx.reply(msg)
+    
+    
+@get_command.error
+async def get_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.reply(f"\n-# Command on cooldown, try again after {error.retry_after:.2f}s.")
+    else:
+        print(error)
 
 # Get Region stats from planet 
 @bot.command(name='get_region')
@@ -439,7 +474,7 @@ async def getregion_command(ctx, *, name: str):
     
 # Get Top Ten planet stats
 @bot.command(name="get_top")
-@commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
+@commands.dynamic_cooldown(custom_cooldown, commands.BucketType.user)
 async def gettop_command(ctx):
     api = await api_data()
     planets = await planet_data()
@@ -451,13 +486,20 @@ async def gettop_command(ctx):
     for campaign in campaigns:
         idx = campaign['planetIndex']
         stats, _, name = get_stats_by_name(api, planets, warinfo, idx)
-        effects = get_effects_by_idx(api, idx)[0]
-        score = round(horse_predict(stats, effects),2)
-        leaderboard.append([name.upper(), stats['progress'], stats['pop%'], score])
+        librate = get_librate_from_idx(idx)
+        leaderboard.append([name.upper(), stats['progress'], stats['pop%'], librate])
     leaderboard = sorted(leaderboard, key = lambda x: x[2], reverse=True)
-    leaderboard.insert(0,['Planet', 'Progress', 'pop%', 'Horse Index (WIP)'])
-    await ctx.reply(f"## Top Ten Deployed Planets: \n```{tabulate(leaderboard[:11])}```")
-    
+    leaderboard.insert(0,['Planet', 'Progress', 'pop%', 'librate'])
+    if is_authorized(ctx):
+        await ctx.reply(f"## Top Ten Deployed Planets: \n```{tabulate(leaderboard[:11])}```")
+    else:
+        await ctx.reply(f"## Top Three Deployed Planets: \n```{tabulate(leaderboard[:4])}```")
+
+@gettop_command.error
+async def gettop_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.reply(f"\n-# Command on cooldown, try again after {error.retry_after:.2f}s.")
+
 # Set ACECON
 @bot.command(name='set_acecon')
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
@@ -560,12 +602,7 @@ async def on_message(message):
     await bot.process_commands(message)
     
     
-def custom_cooldown(message):
-    COOLDOWN = botconfig.config['COOLDOWN']['value']
-    if is_authorized(message):
-        return commands.Cooldown(1, 0.5)
-    else:
-        return commands.Cooldown(1,COOLDOWN)
+
 # Sitrep
 @bot.command(name="sitrep")
 @commands.dynamic_cooldown(custom_cooldown, commands.BucketType.user)
