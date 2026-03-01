@@ -29,7 +29,7 @@ acecon_msg_link = 'https://discord.com/channels/1261556132640456764/142778616227
 advisory_link = 'https://discord.com/channels/1261556132640456764/1427786162272997526'
 LEADER_ROLE_ID = 1372466615798726707
 HQ_CHANNEL = 1369361948336062685
-LAB_CHANNEL = 1439653037554798612
+LOUNGE_CHANNEL = 1427787543394385930
 NEWS_CHANNEL = 1379181040731422822
 reminder_set = False
 joe = 803676742639550544
@@ -199,7 +199,7 @@ async def eta_loop():
             
             if datetime.datetime.now().hour == 18:
                 d_health = (data[-25] - data[-1]) / 24
-                lab_channel = bot.get_channel(LAB_CHANNEL)
+                lab_channel = bot.get_channel(LOUNGE_CHANNEL)
                 await lab_channel.send(f"```24-hour average drain rate: {d_health:.4f}%, or {int(d_health * 2000)}k per hour```", file=discord.File('imgcache/health_logs.png'))
 
 
@@ -216,13 +216,13 @@ async def reminder_loop():
         if mo_ddl > 0:
             reminder_set = False
         elif not reminder_set:
-            lab_channel = bot.get_channel(LAB_CHANNEL)
-            await lab_channel.send(f"<@&{LEADER_ROLE_ID}>\n```MO expiration detected, please close the relevant thread as soon as possible.```")
+            lounge_channel = bot.get_channel(LOUNGE_CHANNEL)
+            await lounge_channel.send(f"<@&{LEADER_ROLE_ID}>\n```MO expiration detected, please close the relevant thread as soon as possible.```")
             reminder_set = True
     except IndexError:
         if not reminder_set:
-            lab_channel = bot.get_channel(LAB_CHANNEL)
-            await lab_channel.send(f"<@&{LEADER_ROLE_ID}>\n```MO expiration detected, please close the relevant thread as soon as possible.```")
+            lounge_channel = bot.get_channel(LOUNGE_CHANNEL)
+            await lounge_channel.send(f"<@&{LEADER_ROLE_ID}>\n```MO expiration detected, please close the relevant thread as soon as possible.```")
             reminder_set = True
 
 # Periodic ticker GIF generation
