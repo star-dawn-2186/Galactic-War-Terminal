@@ -98,6 +98,26 @@ def convert_time(t, api):
     deviation = current - wartime 
     return t + deviation
 
+def format_duration(seconds):
+    if seconds == 0:
+        return "0S"
+
+    units = [
+        ('Y', 365 * 24 * 3600),
+        ('M', 30 * 24 * 3600),
+        ('D', 24 * 3600),
+        ('H', 3600),
+        ('m', 60),  
+        ('s', 1)
+    ]
+
+    parts = []
+    for unit_name, unit_seconds in units:
+        if seconds >= unit_seconds:
+            value, seconds = divmod(seconds, unit_seconds)
+            parts.append(f"{int(value)}{unit_name}")
+
+    return " ".join(parts)
 
 
 class BotConfig():

@@ -248,19 +248,32 @@ async def ticker_loop():
     for campaign in campaigns:
         idx = campaign['planetIndex']
         stats, _, name = get_stats_by_name(api, planets, warinfo, idx)
+        defense = 'decay' in stats
         idx = stats['id']
         pop = stats['pop%']
-        decay = stats['decay']
         faction = stats['faction']
         librate = get_librate_from_idx(idx)
+        eta = stats['eta']
         if librate is None:
             return
-        leaderboard.append([name,pop,librate,decay,faction[0].lower()])
+        leaderboard.append([name,pop,librate,eta,faction[0].lower(),defense])
     leaderboard = sorted(leaderboard, key = lambda x: x[1], reverse=True)[:5]
     
     for i in leaderboard:
-        positive = True if i[2] >= 0 else False
-        libdict[i[0].upper()] = (f"{abs(i[2])}%", positive, f"DECAY {i[3]}%", f"POP {i[1]}%", i[4])
+        if not i[-1]:
+            positive = i[2] >= 0
+        else:
+            try:
+                positive = i[3] >= 0
+            except:
+                positive = True
+            
+        if type(i[3]) == str:
+            i[3] = 'N/A'
+        else:
+            i[3] = format_duration(abs(i[3])*3600)
+        
+        libdict[i[0].upper()] = (f"{abs(i[2])}%", positive, f"ETA {i[3]}", f"POP {i[1]}%", i[4])
     
     if botconfig.config['TICKER_TOGGLE']['value']:
         
@@ -402,15 +415,16 @@ async def get_command(ctx, *, name: str):
     progress = static['progress']
     current = time.time()
     campaign = static['campaign']
+    defense = campaign == 'Defense'
     if campaign == "Already liberated":
         etamsg = "**Liberty Secured**"
         progress = 100
     elif campaign == "Currently unreachable":
         etamsg = "**Unreachable**"
         progress = 0
-    elif eta == "**STALEMATE**":
+    elif eta == "**STALEMATE**" or eta == "**UNCERTAIN**":
         etamsg = eta
-    elif float(eta) > 0:
+    elif float(eta) >= 0:
         etamsg = f"**Full Liberation <t:{int(current + eta * 3600)}:R>**"
     elif float(eta) < 0:
         etamsg = f"**Full Withdrawal <t:{int(current - eta * 3600)}:R>**"
@@ -420,29 +434,47 @@ async def get_command(ctx, *, name: str):
     msg = f"## Planet Summary: {name.upper()}\n"
     
     if is_authorized(ctx):
-        msg += f"### {names}\n"
+        msg += f"### {names}\n\n"
+    
+    msg += f"### {campaign.upper()}\n"
+    if not defense:
+        msg += "-"*20 + '\n'
+        msg += f"**{progress}% LIBERATED**\n{etamsg}\n"
+    else:
+        level = static['level']
+        duration = static['duration']
+        msg += f"LEVEL **{level}** | **{duration}** HOURS\n"
+        msg += "-"*20 + '\n'
+        diff_idx = level / duration
+        if diff_idx <= 0.7:
+            rating = "Easy"
+        elif diff_idx < 1:
+            rating = "Routine"
+        elif diff_idx < 1.3:
+            rating = "Hard"
+        else:
+            rating = "IMPOSSIBLE"
+        msg += f"Difficulty rating: __{rating}__\n"
+        msg += f"**{progress}% DEFENDED**\n{etamsg}\n"
         
-    msg += "-"*20 + '\n'
-    msg += f"**{progress}% LIBERATED**\n{etamsg}\n"
     msg += "-"*20 + '\n'
     msg += "### Planet stats:\n"
     msg += f"```{tabulate(static_txt, colalign=('left',))}```\n"
-    print(msg)
     if not is_authorized(ctx):
         
         return await ctx.reply(msg)
     
     
-    score = horse_predict(static, effects)
+    score = round(horse_predict(static, effects) * 100, 1)
     msg += "### Planet Effects:\n - "
     if effects == []:
         msg += "No current effects detected.\n"
     else:
         msg += '\n - '.join(effects) + '\n'
     if score is not None:
-        msg += f"### Horse Index (Blob Attractiveness):\n{score:.4f}"
+        msg += f"### Holistic Overall Reallocation Sequence Evaluator (H.O.R.S.E.) score:\n{score:.2f}"
     else:
-        msg += "-# Planet unreachable or already liberated, Horse Index not available"
+        msg += "-# Planet unreachable or already liberated, H.O.R.S.E. not available"
             
 
     return await ctx.reply(msg)
@@ -486,10 +518,11 @@ async def gettop_command(ctx):
     for campaign in campaigns:
         idx = campaign['planetIndex']
         stats, _, name = get_stats_by_name(api, planets, warinfo, idx)
-        librate = get_librate_from_idx(idx)
-        leaderboard.append([name.upper(), stats['progress'], stats['pop%'], librate])
+        effects = get_effects_by_idx(api, idx)
+        score = round(horse_predict(stats, effects) * 100, 1)
+        leaderboard.append([name.upper(), stats['progress'], stats['pop%'], score])
     leaderboard = sorted(leaderboard, key = lambda x: x[2], reverse=True)
-    leaderboard.insert(0,['Planet', 'Progress', 'pop%', 'librate'])
+    leaderboard.insert(0,['Planet', 'Progress', 'pop%', 'H.O.R.S.E.'])
     if is_authorized(ctx):
         await ctx.reply(f"## Top Ten Deployed Planets: \n```{tabulate(leaderboard[:11])}```")
     else:

@@ -1,6 +1,8 @@
 from static_data import region_names, planet_names, effect_names, planet_info
 from libcalc import get_librate_from_idx, get_region_librate_from_idx
 import math
+import time
+from utils import convert_time
 def get_campaign_for_planet(api_data, idx):
     campaigns = api_data.get("campaigns")
     for campaign in campaigns:
@@ -124,10 +126,6 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
         total_players += planet['players']
     pop = round(pop / total_players * 100)
     
-    regen = api_data.get('planetStatus')[int(idx)]['regenPerSecond']
-    maxhealth = warinfo[int(idx)]['maxHealth']
-    decay = round(regen * 3600 / maxhealth * 100, 2)
-    
     campaign = get_campaign_for_planet(api_data, idx)
     if campaign == None:
         if api_data.get('planetStatus')[int(idx)]['owner'] == 1:
@@ -145,10 +143,28 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
                     4: "Defense"
                 }
         campaign_type = campaign_type_map[campaign['type']]
+        
     if defense:
         faction = factions[campaign['race']]
+        defenses = api_data.get('planetEvents')
+        for defense in defenses:
+            if defense['planetIndex'] == int(idx):
+                health = defense['health']
+                maxhealth = defense['maxHealth']
+                level = maxhealth // 50000
+                ddl = convert_time(defense['expireTime'], api_data)
+                duration = (defense['expireTime'] - defense['startTime']) // 3600
+                break
+        progress = round((1 - health / maxhealth) * 100, 2)
+        
+        
     else:
-        faction = factions[api_data.get('planetStatus')[int(idx)]['owner']]
+        faction = factions[api_data.get('planetStatus')[int(idx)]['owner']]  
+        regen = api_data.get('planetStatus')[int(idx)]['regenPerSecond']
+        health = api_data.get('planetStatus')[int(idx)]['health']
+        maxhealth = warinfo[int(idx)]['maxHealth']
+        decay = round(regen * 3600 / maxhealth * 100, 2)
+        progress = round((1 - health / maxhealth) * 100, 2)
     
     position = api_data.get('planetStatus')[int(idx)]['position']
     x, y = position['x'], position['y']
@@ -179,19 +195,21 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
             city = True
             break
     
-    health = api_data.get('planetStatus')[int(idx)]['health']
-    progress = round((1 - health / maxhealth) * 100, 2)
     librate = get_librate_from_idx(idx)
     if librate is None:
-        eta = "[CORRUPTED DATA, POSSIBLE AUTOMATON INTEFERENCE]"
+        eta = "**UNCERTAIN**"
     elif librate > 0:
         eta = (100 - progress) / librate
+        if defense:
+            if time.time() + eta * 3600 > ddl:
+                eta = (time.time() - ddl) / 3600
     elif librate < 0:
         eta = progress / librate
     else:
         eta = "**STALEMATE**" 
-        
-    return {"id": idx, 
+    
+    if defense:
+        return {"id": idx, 
             "faction": faction, 
             "campaign": campaign_type, 
             "biome": biome, 
@@ -199,10 +217,23 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
             "dist": dist_to_se, 
             "has regions": city,
             "pop%": pop,
-            "decay": decay, 
+            "level": level,
+            "duration": duration,
             "progress": progress,
             "eta": eta}, UNnames, name
-    
+    else:
+        return {"id": idx, 
+                "faction": faction, 
+                "campaign": campaign_type, 
+                "biome": biome, 
+                "environmentals": environmentals, 
+                "dist": dist_to_se, 
+                "has regions": city,
+                "pop%": pop,
+                "decay": decay, 
+                "progress": progress,
+                "eta": eta}, UNnames, name
+        
 
 def get_effects_by_idx(api_data, idx):
     active_effects = api_data.get('planetActiveEffects')

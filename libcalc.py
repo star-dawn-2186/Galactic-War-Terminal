@@ -26,6 +26,7 @@ async def update_librate(p_filename=p_FILENAME, r_filename = r_FILENAME):
     region_status = status.get('planetRegions')
     planet_info = warinfo.get('planetInfos')
     region_info = warinfo.get('planetRegions')
+    planet_events = status.get('planetEvents')
     
     if not os.path.isfile(p_filename):
         await init_savedhealth(p_filename,'p')
@@ -39,7 +40,28 @@ async def update_librate(p_filename=p_FILENAME, r_filename = r_FILENAME):
         
     with open(p_filename,'r') as f:
         healthdict = json.load(f)
+    
+    defenses = []
+    for event in planet_events:
+        if event['eventType'] == 1:
+            idx = event['planetIndex']
+            defenses.append(int(idx))
+            health = int(event['health'])
+            prev_health = healthdict[str(idx)][0]
+            maxhealth = int(event['maxHealth'])
+            if prev_health % 10000 == 0: # previously liberated, new defense
+                librate = None
+            else:
+                delta_health = prev_health - health
+                healthp = delta_health / maxhealth * 100
+                librate = round(healthp / (UPDATE_INTERVAL / 3600),2)
+                
+            healthdict[str(idx)] = [health, librate]
+            
     for planet in planet_status:
+        if int(planet['index']) in defenses:
+            continue
+    
         health = int(planet['health'])
         prev_health = healthdict[str(planet['index'])][0]
         delta_health = prev_health - health
@@ -47,7 +69,7 @@ async def update_librate(p_filename=p_FILENAME, r_filename = r_FILENAME):
         healthp = delta_health / maxhealth * 100
         librate = round(healthp / (UPDATE_INTERVAL / 3600),2)
         healthdict[str(planet['index'])] = [health, librate]
-    
+            
     with open(r_filename, 'r') as f:
         regiondict = json.load(f)
     
@@ -89,9 +111,15 @@ async def init_savedhealth(filename=p_FILENAME, mode = 'p'):
         return
     if mode == 'p':
         status = status.get('planetStatus')
+        planet_events = status.get('planetEvents')
         healthdict = {}
         for planet in status:
             healthdict[str(planet['index'])] = [planet['health'], 0]
+        for event in planet_events:
+            if event['eventType'] == 1:
+                idx = event['planetIndex']
+                health = int(event['health'])
+                healthdict[str(idx)] = [health, 0]
         with open(filename,'w') as f:
             json.dump(healthdict, f, indent=4)
             
