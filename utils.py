@@ -61,34 +61,36 @@ def format_planet_data(names, static_txt, effects):
 def format_region_data(regions, name):
     result = f"## Region data for: {name.upper()}\n"
     for region in regions:
-        region_txt = '### ' + region['name'].upper() + '\n'
         eq_size = region['eq_size']
-        region_txt += f' - Equivalent size: **{eq_size}** base planets\n'
         decay = region['decay']
-        region_txt += f' - Decay: **{decay}%**\n'
         progress = region['progress']
-        if progress == 100:
-            progress = 'Fully Liberated'
-        else:
-            progress = str(progress) + '%'
-            
         eta = region['eta']
         current = time.time()
+        lib_bomb = region['libbomb']
+        pop = region['pop']
+        
+        region_txt = '### ' + region['name'].upper() + f' - {int(eq_size * 1e3)}K HP\n'
+        region_txt += f' - Current relative pop%: **{pop}%**\n'  
+        region_txt += f' - Decay: **{decay}%**\n'
+        region_txt += f" - Liberation boost: **{int(lib_bomb * 100)}%**\n"
+        
+        
+        if progress == 0:
+            if eta == "**Liberty Secured**":
+                progress = "100% Liberated"
+            elif eta == 'Unavailable':
+                progress = "N/A"
+        else:
+            progress = str(progress) + "% " + "Liberated"
+            
+        region_txt += f' - Current status: **{progress}**\n'     
         if type(eta) == str:
             etamsg = eta
         elif float(eta) > 0:
             etamsg = f"Full Liberation **<t:{int(current + eta * 3600)}:R>**"
         elif float(eta) < 0:
             etamsg = f"Full Withdrawal **<t:{int(current - eta * 3600)}:R>**"
-
-        region_txt += f' - Current progress: **{progress}**\n'
         region_txt += ' - ' + etamsg + '\n'
-        
-        lib_bomb = region['libbomb']
-        region_txt += f" - Liberation boost: **{int(lib_bomb * 100)}%**\n"
-        
-        pop = region['pop']
-        region_txt += f' - Current relative pop%: **{pop}%**\n'
         result += region_txt
     return result
 

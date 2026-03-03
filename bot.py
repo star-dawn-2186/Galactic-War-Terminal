@@ -31,7 +31,15 @@ LEADER_ROLE_ID = 1372466615798726707
 HQ_CHANNEL = 1369361948336062685
 LOUNGE_CHANNEL = 1427787543394385930
 NEWS_CHANNEL = 1379181040731422822
-reminder_set = False
+
+if not os.path.isfile("reminder_set.pkl"):
+    reminder_set = False
+    with open("reminder_set.pkl",'wb') as f:
+        pickle.dump(reminder_set, f)
+else:
+    with open("reminder_set.pkl", 'rb') as f:
+        reminder_set = pickle.load(f)
+        
 joe = 803676742639550544
 
 from libcalc import UPDATE_INTERVAL
@@ -207,7 +215,8 @@ async def eta_loop():
 # Reminder to close threads when MO ends
 @tasks.loop(minutes = 30)
 async def reminder_loop():
-    global reminder_set
+    with open("reminder_set.pkl",'rb') as f:
+        reminder_set = pickle.load(f)
     mo_data = await MO_data()
     if mo_data is None:
         return await send_error_msg()
@@ -215,15 +224,22 @@ async def reminder_loop():
         mo_ddl = mo_data[0]['expiresIn']
         if mo_ddl > 0:
             reminder_set = False
+            with open('reminder_set.pkl','wb') as f:
+                pickle.dump(reminder_set, f)
         elif not reminder_set:
             lounge_channel = bot.get_channel(LOUNGE_CHANNEL)
             await lounge_channel.send(f"<@&{LEADER_ROLE_ID}>\n```MO expiration detected, please close the relevant thread as soon as possible.```")
             reminder_set = True
+            with open('reminder_set.pkl','wb') as f:
+                pickle.dump(reminder_set, f)
+                
     except IndexError:
         if not reminder_set:
             lounge_channel = bot.get_channel(LOUNGE_CHANNEL)
             await lounge_channel.send(f"<@&{LEADER_ROLE_ID}>\n```MO expiration detected, please close the relevant thread as soon as possible.```")
             reminder_set = True
+            with open('reminder_set.pkl','wb') as f:
+                pickle.dump(reminder_set, f)
 
 # Periodic ticker GIF generation
 @tasks.loop(seconds=UPDATE_INTERVAL)

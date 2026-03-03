@@ -270,7 +270,16 @@ def get_regions_by_name(api_data, warinfo_data, planet_data, name):
     if idx is None:
         return None
     warinfo = warinfo_data.get('planetInfos')
+    planet_event = api_data.get('planetEvents')
+
+    planet_health = api_data.get('planetStatus')[idx]['health']
     planet_maxhealth = warinfo[idx]['maxHealth']
+    for event in planet_event:
+        if event['planetIndex'] == idx and event['eventType'] == 1: # Defense campaigns
+            planet_health = event['health']
+            planet_maxhealth = event['maxHealth']
+            break
+    
     
     region_status = [region for region in api_data.get('planetRegions') if region['planetIndex'] == idx]
     region_info = [region for region in warinfo_data.get('planetRegions') if region['planetIndex'] == idx]
@@ -297,6 +306,10 @@ def get_regions_by_name(api_data, warinfo_data, planet_data, name):
         players = region['players']
         pop = round(players / planet_players * 100, 2)
         
+        aF = region['availabilityFactor']
+        is_available = region['isAvailable']
+        is_open = aF >= planet_health / planet_maxhealth 
+        
         librate = get_region_librate_from_idx(rID)
         if librate is None:
             eta = "[CORRUPTED DATA, POSSIBLE AUTOMATON INTEFERENCE]"
@@ -304,8 +317,13 @@ def get_regions_by_name(api_data, warinfo_data, planet_data, name):
             eta = (100 - progress) / librate
         elif librate < 0:
             eta = progress / librate
+        elif is_open and is_available:
+            eta = "Stalemate" 
+        elif is_open and not is_available:
+            eta = "**Liberty Secured**"
         else:
-            eta = "Stalemate/Unavailable" 
+            eta = "Unavailable"
+            
         
         region_dicts.append({'name': name,
                              'eq_size': eq_size,
