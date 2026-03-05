@@ -481,14 +481,14 @@ async def get_command(ctx, *, name: str):
         return await ctx.reply(msg)
     
     
-    score = round(horse_predict(static, effects) * 100, 1)
+    score = horse_predict(static, effects)
     msg += "### Planet Effects:\n - "
     if effects == []:
         msg += "No current effects detected.\n"
     else:
         msg += '\n - '.join(effects) + '\n'
     if score is not None:
-        msg += f"### Holistic Overall Reallocation Sequence Evaluator (H.O.R.S.E.) score:\n{score:.2f}"
+        msg += f"### Holistic Overall Reallocation Sequence Evaluator (H.O.R.S.E.) score:\n{round(score * 100, 1)}"
     else:
         msg += "-# Planet unreachable or already liberated, H.O.R.S.E. not available"
             
@@ -512,8 +512,9 @@ async def getregion_command(ctx, *, name: str):
     warinfo = await warinfo_data()
     if None in [data, planet, warinfo]:
         return await send_error_msg(ctx)
-    regions, name = get_regions_by_name(data, warinfo, planet, name)
-    if regions is None:
+    try:
+        regions, name = get_regions_by_name(data, warinfo, planet, name)
+    except:
         return await ctx.reply("Unable to find planet.")
     if regions == []:
         return await ctx.reply("No currently active regions on this planet.")

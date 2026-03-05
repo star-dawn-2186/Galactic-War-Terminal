@@ -195,18 +195,23 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
             city = True
             break
     
-    librate = get_librate_from_idx(idx)
-    if librate is None:
-        eta = "**UNCERTAIN**"
-    elif librate > 0:
-        eta = (100 - progress) / librate
-        if defense:
-            if time.time() + eta * 3600 > ddl:
-                eta = (time.time() - ddl) / 3600
-    elif librate < 0:
-        eta = progress / librate
+    if campaign_type in ['Already liberated', 'Currently unreachable']:
+        librate = 0
+        eta = 'N/A'
+        
     else:
-        eta = "**STALEMATE**" 
+        librate = get_librate_from_idx(idx)
+        if librate is None:
+            eta = "**UNCERTAIN**"
+        elif librate > 0:
+            eta = (100 - progress) / librate
+            if defense:
+                if time.time() + eta * 3600 > ddl:
+                    eta = (time.time() - ddl) / 3600
+        elif librate < 0:
+            eta = progress / librate
+        else:
+            eta = "**STALEMATE**" 
     
     if defense:
         return {"id": idx, 
