@@ -336,5 +336,6 @@ def get_regions_by_name(api_data, warinfo_data, planet_data, name):
                              'progress': progress,
                              'pop': pop,
                              'eta': eta,
-                             'libbomb': lib_bomb})
+                             'libbomb': lib_bomb,
+                             'availabilityFactor': aF})
     return region_dicts, Pname
