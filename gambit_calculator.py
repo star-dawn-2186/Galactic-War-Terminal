@@ -11,7 +11,7 @@ def calc_gambit(idx, api_data, planet_data, warinfo):
         return None
     
     attacks = api_data.get('planetAttacks')
-    planet_info = warinfo_data.get('planetInfos')
+    planet_info = warinfo.get('planetInfos')
     sources = []
     for attack in attacks:
         if attack['target'] == idx:
