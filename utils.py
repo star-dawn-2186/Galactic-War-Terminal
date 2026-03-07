@@ -9,7 +9,7 @@ warinfo_link = "https://api.live.prod.thehelldiversgame.com/api/warseason/801/wa
 planet_link = "https://helldiverstrainingmanual.com/api/v1/planets"
 campaign_link = "https://helldiverstrainingmanual.com/api/v1/war/campaign"
 MO_link = "https://helldiverstrainingmanual.com/api/v1/war/major-orders"
-dss_vote_link = 'https://redivivus-nixon-uncomplicated.ngrok-free.dev/unlisted/'
+dss_vote_link = 'https://redivivus-nixon-uncomplicated.ngrok-free.dev/'
 
 
 # def access_api(link):
@@ -47,7 +47,11 @@ async def campaign_data():
 async def MO_data():
     return await fetch_json(MO_link)
 async def DSS_voting_data():
-    return await fetch_json(dss_vote_link)
+    for suffix in ['election','unlisted','votes']:
+        result = await fetch_json(dss_vote_link + suffix)
+        if result != {'detail': 'Not Found'} and result is not None:
+            return result
+    return "Beef fix your API"
 
 def format_planet_data(names, static_txt, effects):
     print(names)

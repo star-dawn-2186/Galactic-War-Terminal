@@ -79,6 +79,9 @@ def is_authorized(ctx):
 
 async def format_dss_votes():
     dss_data = await DSS_voting_data()
+    if dss_data == 'Beef fix your API':
+        print(dss_data)
+        raise RuntimeError 
     data = sorted(dss_data['Options'], key = lambda d: d['Percentage'], reverse=True)
     tab = []
     for planet in data:
