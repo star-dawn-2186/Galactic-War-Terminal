@@ -383,6 +383,19 @@ async def kill_command(ctx):
         await ctx.reply("Powering down.")
         sys.exit()  
     
+# Gambit Calc command
+@bot.command(name="gambit")
+async def gambitcalc(ctx, *, name: str):
+    api = await api_data()
+    planets = await planet_data()
+    warinfo = await warinfo_data()
+
+    if None in [api, planets, warinfo]:
+        return await send_error_msg()
+    
+    response = calc_gambit(name, api, planets, warinfo)
+    
+    await ctx.reply(f"Score: {response["score"]}")
 
 # Get DSS Voting data (Thanks Beef!)
 @bot.command(name='dss_vote')
