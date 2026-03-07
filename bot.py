@@ -384,7 +384,7 @@ async def kill_command(ctx):
 
 # Get DSS Voting data (Thanks Beef!)
 @bot.command(name='dss_vote')
-@commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
+@commands.dynamic_cooldown(custom_cooldown, commands.BucketType.user)
 async def dss_voting_command(ctx):
     api = await api_data()
     if api is None:
@@ -395,6 +395,13 @@ async def dss_voting_command(ctx):
         await ctx.reply(f"DSS moves: <t:{dss_dll}:R>\n"+dss_txt)
     except:
         await ctx.reply("DSS data offline.")
+    
+@dss_voting_command.error
+async def get_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.reply(f"Look up.\n-# Command on cooldown, try again after {error.retry_after:.2f}s.")
+    else:
+        print(error)
 
 # Get Planet stats (Thanks Beef!)
 @bot.command(name="get")
