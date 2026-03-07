@@ -21,6 +21,8 @@ from libcalc import get_librate_from_idx, update_librate
 from ocr import img_to_stats, summary_from_stats
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import subprocess
+
 
 process_executor = ProcessPoolExecutor(max_workers=1)
 
@@ -459,7 +461,9 @@ async def get_command(ctx, *, name: str):
     if is_authorized(ctx):
         msg += f"### {names}\n\n"
     
+    msg += format_environmental_data(static['environmentals'].split('\n'))
     msg += f"### {campaign.upper()}\n"
+    
     if not defense:
         msg += "-"*20 + '\n'
         msg += f"**{progress}% LIBERATED**\n{etamsg}\n"
@@ -841,5 +845,16 @@ intents.message_content = True
 intents.guilds = True
 
 if __name__ == '__main__':
+    print("Checking for data updates...")
+    os.chdir('json_data')
+    cmds = [['git', 'fetch'], ['git', 'merge', 'origin/master']]
+    for cmd in cmds:
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            print(result.stdout)
+        except subprocess.CalledProcessError as e:
+            print(f"Error executing command {cmd}: {e.stderr}")
+            break
+    os.chdir('..')
     bot.run(TOKEN)
 

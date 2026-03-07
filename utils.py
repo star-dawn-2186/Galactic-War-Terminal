@@ -2,6 +2,7 @@ from tabulate import tabulate
 import time
 import json
 import aiohttp
+from static_data import environmental_info
 
 status_link = "https://api.live.prod.thehelldiversgame.com/api/warseason/801/status"
 warinfo_link = "https://api.live.prod.thehelldiversgame.com/api/warseason/801/warinfo"
@@ -57,6 +58,14 @@ def format_planet_data(names, static_txt, effects):
     for effect in effects:
         print(effect)
     print('-'*20)
+
+def format_environmental_data(env_list):
+    msg = ''
+    for env in env_list:
+        if env in environmental_info:
+            name, desc = environmental_info[env]["name"], environmental_info[env]["description"]
+            msg += f"> {name}\n-# {desc}\n"
+    return msg
 
 def format_region_data(regions, name):
     result = f"## Region data for: {name.upper()}\n"
