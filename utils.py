@@ -8,7 +8,7 @@ warinfo_link = "https://api.live.prod.thehelldiversgame.com/api/warseason/801/wa
 planet_link = "https://helldiverstrainingmanual.com/api/v1/planets"
 campaign_link = "https://helldiverstrainingmanual.com/api/v1/war/campaign"
 MO_link = "https://helldiverstrainingmanual.com/api/v1/war/major-orders"
-dss_vote_link = 'https://redivivus-nixon-uncomplicated.ngrok-free.dev/votes/'
+dss_vote_link = 'https://redivivus-nixon-uncomplicated.ngrok-free.dev/unlisted/'
 
 
 # def access_api(link):
