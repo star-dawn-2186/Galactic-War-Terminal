@@ -45,7 +45,7 @@ async def campaign_data():
     return await fetch_json(campaign_link)
 async def MO_data():
     return await fetch_json(MO_link)
-def DSS_voting_data():
+def DSS_voting_data(): # "What a great way to solve this issue, Joe. Well done. :3" - THD
     
     cookies = {
         'abuse_interstitial': 'redivivus-nixon-uncomplicated.ngrok-free.dev',
