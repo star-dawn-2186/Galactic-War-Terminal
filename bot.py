@@ -77,11 +77,8 @@ def is_authorized(ctx):
     except AttributeError:
         return False
 
-async def format_dss_votes():
-    dss_data = await DSS_voting_data()
-    if dss_data == 'Beef fix your API':
-        print(dss_data)
-        raise RuntimeError 
+def format_dss_votes():
+    dss_data = DSS_voting_data()
     data = sorted(dss_data['Options'], key = lambda d: d['Percentage'], reverse=True)
     tab = []
     for planet in data:
@@ -396,9 +393,10 @@ async def dss_voting_command(ctx):
         return await send_error_msg(ctx)
     try:
         dss_dll = convert_time(api.get('spaceStations')[0]['currentElectionEndWarTime'], api)
-        dss_txt = await format_dss_votes()
+        dss_txt = format_dss_votes()
         await ctx.reply(f"DSS moves: <t:{dss_dll}:R>\n"+dss_txt)
-    except:
+    except Exception as e:
+        print(e)
         await ctx.reply("DSS data offline.")
     
 @dss_voting_command.error
@@ -848,16 +846,16 @@ intents.message_content = True
 intents.guilds = True
 
 if __name__ == '__main__':
-    print("Checking for data updates...")
-    os.chdir('json_data')
-    cmds = [['git', 'fetch'], ['git', 'merge', 'origin/master']]
-    for cmd in cmds:
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            print(result.stdout)
-        except subprocess.CalledProcessError as e:
-            print(f"Error executing command {cmd}: {e.stderr}")
-            break
-    os.chdir('..')
+    # print("Checking for data updates...")
+    # os.chdir('json_data')
+    # cmds = [['git', 'fetch'], ['git', 'merge', 'origin/master']]
+    # for cmd in cmds:
+    #     try:
+    #         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    #         print(result.stdout)
+    #     except subprocess.CalledProcessError as e:
+    #         print(f"Error executing command {cmd}: {e.stderr}")
+    #         break
+    # os.chdir('..')
     bot.run(TOKEN)
 

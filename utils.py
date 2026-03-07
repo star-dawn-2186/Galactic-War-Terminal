@@ -2,6 +2,7 @@ from tabulate import tabulate
 import time
 import json
 import aiohttp
+import requests
 from static_data import environmental_info
 
 status_link = "https://api.live.prod.thehelldiversgame.com/api/warseason/801/status"
@@ -9,13 +10,7 @@ warinfo_link = "https://api.live.prod.thehelldiversgame.com/api/warseason/801/wa
 planet_link = "https://helldiverstrainingmanual.com/api/v1/planets"
 campaign_link = "https://helldiverstrainingmanual.com/api/v1/war/campaign"
 MO_link = "https://helldiverstrainingmanual.com/api/v1/war/major-orders"
-dss_vote_link = 'https://redivivus-nixon-uncomplicated.ngrok-free.dev/'
-
-
-# def access_api(link):
-#     x = requests.get(link)
-#     data = x.json()
-#     return data
+dss_vote_link = 'https://redivivus-nixon-uncomplicated.ngrok-free.dev/election/'
 
 _session = None
 
@@ -23,15 +18,19 @@ async def get_session():
     global _session
     if _session is None or _session.closed:
         _session = aiohttp.ClientSession()
+
     return _session
 
 async def fetch_json(url):
     session = await get_session()
     try:
-        async with session.get(url, timeout=10) as response:
+        async with session.get(url, timeout=10, allow_redirects=True) as response:
+            
             if response.status == 200:
                 return await response.json()
-            return None # Server error (500, 404, etc)
+            error_text = await response.text()
+            print(f"Response Body: {error_text}")
+            return None
     except Exception as e:
         print(f"API Error: {e}")
         return None
@@ -46,12 +45,32 @@ async def campaign_data():
     return await fetch_json(campaign_link)
 async def MO_data():
     return await fetch_json(MO_link)
-async def DSS_voting_data():
-    for suffix in ['election','unlisted','votes']:
-        result = await fetch_json(dss_vote_link + suffix)
-        if result != {'detail': 'Not Found'} and result is not None:
-            return result
-    return "Beef fix your API"
+def DSS_voting_data():
+    
+    cookies = {
+        'abuse_interstitial': 'redivivus-nixon-uncomplicated.ngrok-free.dev',
+    }
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        # 'Accept-Encoding': 'gzip, deflate, br, zstd',
+        'Connection': 'keep-alive',
+        # 'Cookie': 'abuse_interstitial=redivivus-nixon-uncomplicated.ngrok-free.dev',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'DNT': '1',
+        'Sec-GPC': '1',
+        'Priority': 'u=0, i',
+    }
+
+    response = requests.get('https://redivivus-nixon-uncomplicated.ngrok-free.dev/election/', cookies=cookies, headers=headers)
+    return response.json()
+
 
 def format_planet_data(names, static_txt, effects):
     print(names)

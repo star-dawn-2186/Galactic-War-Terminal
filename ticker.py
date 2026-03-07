@@ -9,7 +9,7 @@ def release_memory():
         ctypes.CDLL('libc.so.6').malloc_trim(0)
     except Exception:
         pass
-def create_stock_ticker_gif(stock_data, output_path="stock_ticker.gif", fps=50, speed=2):
+def create_stock_ticker_gif(stock_data, output_path="stock_ticker.gif", fps=40, speed=3):
     """
     Accelerated ticker generation using NumPy slicing.
     - speed: pixels moved per frame.
