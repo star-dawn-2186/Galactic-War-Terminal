@@ -126,6 +126,20 @@ def format_region_data(regions, name):
         result += region_txt
     return result
 
+def format_dss_votes(secret = False):
+    dss_data = DSS_voting_data()
+    data = sorted(dss_data['Options'], key = lambda d: d['Percentage'], reverse=True)
+    tab = []
+    for planet in data:
+        if secret:
+            tab.append([planet['Name'], str(planet['Votes']), str(planet['Percentage'])+'%'])
+        else:
+            tab.append([planet['Name'],str(planet['Percentage'])+'%'])
+    headers = ['Planet', 'Votes', 'Percentage'] if secret else ['Planet', 'Percentage']
+    txt = tabulate(tab, numalign='left', headers=headers)
+    total = 'Total Votes: '+str(dss_data['Total Votes'])+'\n' if secret else ''
+    return f"{total}```{txt}```"
+
 def convert_time(t, api):
     wartime = api.get('time')
     current = int(time.time())

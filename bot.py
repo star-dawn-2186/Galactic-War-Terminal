@@ -80,20 +80,6 @@ def is_authorized(ctx):
     except AttributeError:
         return False
 
-def format_dss_votes(secret = False):
-    dss_data = DSS_voting_data()
-    data = sorted(dss_data['Options'], key = lambda d: d['Percentage'], reverse=True)
-    tab = []
-    for planet in data:
-        if secret:
-            tab.append([planet['Name'], str(planet['Votes']), str(planet['Percentage'])+'%'])
-        else:
-            tab.append([planet['Name'],str(planet['Percentage'])+'%'])
-    headers = ['Planet', 'Votes', 'Percentage'] if secret else ['Planet', 'Percentage']
-    txt = tabulate(tab, numalign='left', headers=headers)
-    total = 'Total Votes: '+str(dss_data['Total Votes'])+'\n' if secret else ''
-    return f"{total}```{txt}```"
-
 async def send_error_msg(ctx=None):
     if ctx is None:
         print("network error detected")
@@ -887,16 +873,5 @@ intents.message_content = True
 intents.guilds = True
 
 if __name__ == '__main__':
-    # print("Checking for data updates...")
-    # os.chdir('json_data')
-    # cmds = [['git', 'fetch'], ['git', 'merge', 'origin/master']]
-    # for cmd in cmds:
-    #     try:
-    #         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    #         print(result.stdout)
-    #     except subprocess.CalledProcessError as e:
-    #         print(f"Error executing command {cmd}: {e.stderr}")
-    #         break
-    # os.chdir('..')
     bot.run(TOKEN)
 
