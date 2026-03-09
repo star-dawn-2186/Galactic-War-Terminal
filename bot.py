@@ -18,6 +18,7 @@ from find_planets import *
 from horse import horse_predict
 from ticker import create_stock_ticker_gif, release_memory
 from libcalc import get_librate_from_idx, update_librate
+from effcalc import calc_region_eff_from_name
 from ocr import img_to_stats, summary_from_stats
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -32,6 +33,7 @@ advisory_link = 'https://discord.com/channels/1261556132640456764/14277861622729
 LEADER_ROLE_ID = 1372466615798726707
 HQ_CHANNEL = 1369361948336062685
 LOUNGE_CHANNEL = 1427787543394385930
+LAB_CHANNEL = 1439653037554798612
 NEWS_CHANNEL = 1379181040731422822
 
 if not os.path.isfile("reminder_set.pkl"):
@@ -77,14 +79,19 @@ def is_authorized(ctx):
     except AttributeError:
         return False
 
-def format_dss_votes():
+def format_dss_votes(secret = False):
     dss_data = DSS_voting_data()
     data = sorted(dss_data['Options'], key = lambda d: d['Percentage'], reverse=True)
     tab = []
     for planet in data:
-        tab.append([planet['Name'],str(planet['Percentage'])+'%'])
-    txt = tabulate(tab, numalign='left')
-    return f"```{txt}```"
+        if secret:
+            tab.append([planet['Name'], str(planet['Votes']), str(planet['Percentage'])+'%'])
+        else:
+            tab.append([planet['Name'],str(planet['Percentage'])+'%'])
+    headers = ['Planet', 'Votes', 'Percentage'] if secret else ['Planet', 'Percentage']
+    txt = tabulate(tab, numalign='left', headers=headers)
+    total = 'Total Votes: '+str(dss_data['Total Votes'])+'\n' if secret else ''
+    return f"{total}```{txt}```"
 
 async def send_error_msg(ctx=None):
     if ctx is None:
@@ -270,7 +277,7 @@ async def ticker_loop():
         idx = stats['id']
         pop = stats['pop%']
         faction = stats['faction']
-        librate = get_librate_from_idx(idx)
+        librate = get_librate_from_idx(idx)[1]
         eta = stats['eta']
         if librate is None:
             return
@@ -391,10 +398,12 @@ async def dss_voting_command(ctx):
     api = await api_data()
     if api is None:
         return await send_error_msg(ctx)
+    secret = ctx.channel.id in [LOUNGE_CHANNEL, LAB_CHANNEL]
     try:
         dss_dll = convert_time(api.get('spaceStations')[0]['currentElectionEndWarTime'], api)
-        dss_txt = format_dss_votes()
-        await ctx.reply(f"DSS moves: <t:{dss_dll}:R>\n"+dss_txt)
+        dss_txt = format_dss_votes(secret)
+        ddl_txt = f"DSS moves: <t:{dss_dll}:R>\n"
+        await ctx.reply(ddl_txt+dss_txt)
     except Exception as e:
         print(e)
         await ctx.reply("DSS data offline.")
@@ -422,6 +431,7 @@ async def get_command(ctx, *, name: str):
     id = static['id']
     
     has_region = static['has regions']
+    environmentals = static['environmentals']
     if not is_authorized(ctx):
         for key in ['id', 'environmentals', 'dist', 'has regions']:
             try:
@@ -462,7 +472,7 @@ async def get_command(ctx, *, name: str):
     if is_authorized(ctx):
         msg += f"### {names}\n\n"
     
-    msg += format_environmental_data(static['environmentals'].split('\n'))
+    msg += format_environmental_data(environmentals.split('\n'))
     msg += f"### {campaign.upper()}\n"
     
     if not defense:
@@ -561,6 +571,33 @@ async def gettop_command(ctx):
 async def gettop_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
         await ctx.reply(f"\n-# Command on cooldown, try again after {error.retry_after:.2f}s.")
+
+@bot.command(name='effcalc')
+@commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
+async def effcalc_command(ctx, *, name: str):
+    api = await api_data()
+    planets = await planet_data()
+    warinfo = await warinfo_data()
+    if None in [api, planets, warinfo]:
+        return await send_error_msg(ctx)
+
+    effs, planet_eff = calc_region_eff_from_name(api, warinfo, planets, name)
+    if planet_eff is None:
+        return await ctx.reply("Planet not found.")
+    
+    _, name = name_to_idx(name, planets)
+    msg = f"### Eff calc for planet: {name.upper()}\n"
+    
+    if effs is None:
+        msg += "-# No regions found.\n"
+        msg += f" Planetary eff: {planet_eff}\n"
+    
+    else:
+        msg += f" - Non-region planetary eff: {planet_eff}\n"
+        msg += f"Region eff:\n"
+        msg += f"```{tabulate(effs)}```"
+    
+    return await ctx.reply(msg)
 
 # Set ACECON
 @bot.command(name='set_acecon')

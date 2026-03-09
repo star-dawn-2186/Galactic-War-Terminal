@@ -200,7 +200,7 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
         eta = 'N/A'
         
     else:
-        librate = get_librate_from_idx(idx)
+        librate = get_librate_from_idx(idx)[1]
         if librate is None:
             eta = "**UNCERTAIN**"
         elif librate > 0:
@@ -236,6 +236,7 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
                 "has regions": city,
                 "pop%": pop,
                 "decay": decay, 
+                "regen": regen,
                 "progress": progress,
                 "eta": eta}, UNnames, name
         
@@ -315,7 +316,7 @@ def get_regions_by_name(api_data, warinfo_data, planet_data, name):
         is_available = region['isAvailable']
         is_open = aF >= planet_health / planet_maxhealth 
         
-        librate = get_region_librate_from_idx(rID)
+        librate = get_region_librate_from_idx(rID)[1]
         if librate is None:
             eta = "[CORRUPTED DATA, POSSIBLE AUTOMATON INTEFERENCE]"
         elif librate > 0:
@@ -331,10 +332,14 @@ def get_regions_by_name(api_data, warinfo_data, planet_data, name):
             
         
         region_dicts.append({'name': name,
+                             'p_idx': idx,
+                             'r_idx': region_idx,
                              'eq_size': eq_size,
                              'decay': decay,
+                             'regen': regen,
                              'progress': progress,
                              'pop': pop,
+                             'players': players,
                              'eta': eta,
                              'libbomb': lib_bomb,
                              'availabilityFactor': aF})
