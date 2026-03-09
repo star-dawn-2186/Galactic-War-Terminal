@@ -34,6 +34,7 @@ LEADER_ROLE_ID = 1372466615798726707
 HQ_CHANNEL = 1369361948336062685
 LOUNGE_CHANNEL = 1427787543394385930
 LAB_CHANNEL = 1439653037554798612
+ADVISORY_CHANNEL = 1427786162272997526
 NEWS_CHANNEL = 1379181040731422822
 
 if not os.path.isfile("reminder_set.pkl"):
@@ -639,6 +640,9 @@ async def advisory_comand(ctx):
     if confirm == 'y':
         with open ("ADVISORY.txt",'w') as f:
             f.write(ADVISORY)
+        with open("ACECON.txt",'r') as f:
+            ACECON = int(f.read())
+        await bot.get_channel(ADVISORY_CHANNEL).send(acecon_format(ACECON) + f"\n## __Advisory Summary__\n{ADVISORY}")
         await ctx.reply("Advisory has been set.",mention_author=False)
     else:
         await ctx.reply("Action cancelled, advisory has not been updated.",mention_author=False)
