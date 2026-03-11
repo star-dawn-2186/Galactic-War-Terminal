@@ -167,7 +167,38 @@ def format_duration(seconds):
 
     return " ".join(parts)
 
+def format_gambitcalc(result):
+    if result is None:
+        return None
+    if type(result) == str:
+        return result
+    score = result['score']
+    source_name, source_required = result['source']['name'].upper(), result['source']['required']
+    target_names = '\n'.join([name.upper() for name in result['targets']['names']])
+    target_required = result['targets']['required']
+    
+    msg = f"### Gambit feasibility rating: {score}\n"
+    msg += f"Attacking planet: **{source_name}**\n"
+    for name in target_names:
+        msg += f"Defending planet: **{name}**\n"
+    
+    msg += f" - Minimum required HP for Gambit: {source_required}\n"
+    
+    msg += f" - Minimum required HP for Defense: {target_required}\n"    
 
+    if 'horse' in result['source']:
+        source_horse = result['source']['horse']
+        target_horse = result['targets']['horse']
+        msg += f" - H.O.R.S.E. Comparison: **{source_horse}** (Gambit) vs. **{target_horse}** (Defense)\n"
+        
+    if result['dss'] == 'source':
+        msg += " - DSS Location: at Gambit planet"
+    elif result['dss'] == 'target':
+        msg += " - DSS Location: at Defense planet"
+    
+    return msg
+
+    
 class BotConfig():
     def __init__(self):
         try:

@@ -1,7 +1,6 @@
 from static_data import biomes
 from utils import *
-import json
-import os
+
 
 weights = {"MO":0.938,
            "Faction": 0.8,
@@ -18,7 +17,7 @@ W_TOTAL = sum([weights[i] for i in weights])
 # biome bias (simple heuristic)
 biome_bias = {}
 for biome in biomes:
-    for i in ['arctic', 'moor', 'sandy','bug_hiveworld']:
+    for i in ['arctic', 'moor', 'sandy']:
         if i in biome:
             biome_bias[biome] = 1
     for i in ['primordial', 'swamp']:
@@ -62,13 +61,13 @@ def horse_predict(static, effects):
     elif faction == "Automaton":
         score += weights['Faction']
     else:
-        score -= 0.5 * weights['Faction']
+        score += 0.8 * weights['Faction']
     if city:
         score += weights["City"]
     
     DSS = "OPERATIONAL SUPPORT" in effects
     subfaction = False
-    for i in ['CORPS', 'BRIGADE', 'STRAIN']:
+    for i in ['CORPS', 'BRIGADE', 'STRAIN', 'CYBORGS']:
         if i in effects:
             subfaction = True
             break

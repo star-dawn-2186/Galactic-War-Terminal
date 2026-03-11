@@ -16,6 +16,7 @@ from tabulate import tabulate
 from utils import *
 from find_planets import * 
 from horse import horse_predict
+from gambit_calculator import calc_gambit
 from ticker import create_stock_ticker_gif, release_memory
 from libcalc import get_librate_from_idx, update_librate
 from effcalc import calc_region_eff_from_name
@@ -378,6 +379,10 @@ async def kill_command(ctx):
         sys.exit()  
     
 
+# ====================
+# Info Commands
+# ====================
+
 # Get DSS Voting data (Thanks Beef!)
 @bot.command(name='dss_vote')
 @commands.dynamic_cooldown(custom_cooldown, commands.BucketType.user)
@@ -559,6 +564,11 @@ async def gettop_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
         await ctx.reply(f"\n-# Command on cooldown, try again after {error.retry_after:.2f}s.")
 
+# ====================
+# Calculation Commands
+# ====================
+
+# Eff calcs
 @bot.command(name='effcalc')
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
 async def effcalc_command(ctx, *, name: str):
@@ -585,6 +595,24 @@ async def effcalc_command(ctx, *, name: str):
         msg += f"```{tabulate(effs)}```"
     
     return await ctx.reply(msg)
+
+# Gambit calcs
+@bot.command(name="gambit")
+async def gambitcalc(ctx, *, name: str):
+    api = await api_data()
+    planets = await planet_data()
+    warinfo = await warinfo_data()
+
+    if None in [api, planets, warinfo]:
+        return await send_error_msg()
+    
+    response = calc_gambit(name, api, planets, warinfo)
+    msg = format_gambitcalc(response)
+    return await ctx.reply(msg)
+
+# ====================
+# Administrative Commands
+# ====================
 
 # Set ACECON
 @bot.command(name='set_acecon')
@@ -690,7 +718,6 @@ async def on_message(message):
             await dms.send("Action cancelled, Standard Reactions have not been added")
     await bot.process_commands(message)
     
-    
 
 # Sitrep
 @bot.command(name="sitrep")
@@ -739,6 +766,7 @@ async def ddl(ctx):
         await ctx.reply(f"Current MO ends: <t:{mo_ddl}:R>\n```<t:{mo_ddl}:R>```\nDSS moves: <t:{dss_dll}:R>\n```<t:{dss_dll}:R>```")
     except:
         await ctx.reply("DSS data offline.")
+        
 # Send messages in selected channel
 @bot.command(name='send')
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
@@ -801,7 +829,10 @@ async def send_msg(ctx):
         await ctx.reply("Action cancelled.", mention_author=False)
 
 
-#--------------- EVENT COMMANDS ----------------
+# ====================
+# Event Commands
+# ====================
+
 @bot.command(name='event_start')
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
 async def event_start(ctx):

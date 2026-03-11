@@ -254,7 +254,7 @@ def get_effects_by_idx(api_data, idx):
             effect_ids.append(effect['galacticEffectId'])
     global_events = api_data.get('globalEvents')
     for event in global_events:
-        if int(idx) in event['planetIndices']:
+        if int(idx) in event['planetIndices'] or event['planetIndices'] == []:
             for effect in event['effectIds']:
                 effect_lst.append(effect_names[str(effect)])
     try:
