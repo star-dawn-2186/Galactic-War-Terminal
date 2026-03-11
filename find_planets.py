@@ -267,7 +267,7 @@ def get_effects_by_idx(api_data, idx):
     
     
     # absolute cinema
-    effect_lst = [i for i in effect_lst if not (i.endswith('(Enemies)') or i.endswith('(Marker)'))]
+    effect_lst = [i for i in effect_lst if not (i.lower().endswith('(enemies)') or i.lower().endswith('(marker)'))]
     effect_lst = list(set(effect_lst))
     return effect_lst, effect_ids
 
@@ -344,3 +344,16 @@ def get_regions_by_name(api_data, warinfo_data, planet_data, name):
                              'libbomb': lib_bomb,
                              'availabilityFactor': aF})
     return region_dicts, Pname
+
+def get_defense_rating(level, duration):
+    diff_idx = level / duration
+    if diff_idx <= 0.7:
+        rating = "Easy"
+    elif diff_idx < 1:
+        rating = "Routine"
+    elif diff_idx < 1.3:
+        rating = "Hard"
+    else:
+        rating = "IMPOSSIBLE"
+        
+    return rating

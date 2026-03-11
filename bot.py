@@ -21,9 +21,7 @@ from ticker import create_stock_ticker_gif, release_memory
 from libcalc import get_librate_from_idx, update_librate
 from effcalc import calc_region_eff_from_name
 from ocr import img_to_stats, summary_from_stats
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import subprocess
+
 
 
 process_executor = ProcessPoolExecutor(max_workers=1)
@@ -36,6 +34,7 @@ HQ_CHANNEL = 1369361948336062685
 LOUNGE_CHANNEL = 1427787543394385930
 LAB_CHANNEL = 1439653037554798612
 ADVISORY_CHANNEL = 1427786162272997526
+HANGOUT_CHANNEL = 1437744263763857553 # mockup
 NEWS_CHANNEL = 1379181040731422822
 
 if not os.path.isfile("reminder_set.pkl"):
@@ -97,7 +96,7 @@ async def on_ready():
     print('------')
 
     ticker_loop.start()
-    eta_loop.start()
+    alert_loop.start()
     reminder_loop.start()
     
 
@@ -111,104 +110,84 @@ async def on_thread_create(thread):
         await GWR_channel.send(f"```New Major Order detected. Opening discussion thread.```\n{thread_link}")
 
 
-# --- CYBERSTAN SPECIAL ---
-@tasks.loop(minutes = 60)
-async def eta_loop():
+
+@tasks.loop(minutes = 1)
+async def alert_loop():
     api = await api_data()
-    if api is None:
+    planets = await planet_data()
+    warinfo = await warinfo_data()
+    if None in [api, planets, warinfo]:
         return
+    defenses = api.get('planetEvents')
+    subfactions = {}
+    for idx in range(len(api.get('planetStatus'))):
+        subfactions[str(idx)] = []
+        effects, _ = get_effects_by_idx(api, idx)
+        for effect in effects:
+            for sub in ['CORPS', 'BRIGADE', 'STRAIN', 'CYBORG']:
+                if sub.lower() in effect.lower() and effect.lower() != "jet brigade factories":
+                    subfactions[str(idx)].append(effect)
+        
+    init = False
+    if not os.path.isfile("defenses.txt"):
+        with open("defenses.txt", 'w') as f:
+            f.writelines([str(defense['planetIndex']) + '\n' for defense in defenses])
+        init = True
+    if not os.path.isfile("subfactions.json"):
+        with open("subfactions.json",'w') as f:
+            json.dump(subfactions, f)
+        init = True
+    if init: return
     
-    # Cyberstan Offensive Special
-    if not datetime.datetime.now().minute == 0:
-        return
-    if api.get("globalResources"):
-        health_bar = api.get("globalResources")[0]
-        reinforcements_left = health_bar['currentValue'] / 2000000
-        total_players = 0
-        for planet in api.get('planetStatus'):
-            total_players += planet['players']
-            
-        if not os.path.isfile('health_bar_log.txt'):
-            with open('health_bar_log.txt', 'w') as f:
-                f.write(f"{reinforcements_left}\t{total_players}\n")
+    
+    with open("defenses.txt", 'r') as f:
+        prev_defenses = f.read().split('\n')
+    for defense in defenses:
+        if str(defense['plantIndex']) not in prev_defenses: # New defense
+            idx, name = name_to_idx(defense['planetIndex'], planets)
+            stats, _, _ = get_stats_by_name(api, planets, warinfo, name)
+            faction = stats['faction']
+            effects = get_effects_by_idx(api, idx)[0]
                 
-        else:
-            with open('health_bar_log.txt', 'a+') as f:
-                f.write(f"{reinforcements_left}\t{total_players}\n")
+            level, duration = stats['level'], stats['duration']
+            rating = get_defense_rating(level, duration)
+            msg = f"!!=== PRIORITY ALERT: THE {name.upper()} SYSTEM ===!!\n"
+            if faction == 'Terminid':
+                msg += "BUG INFESTATION"
+            elif faction == 'Automaton':
+                msg += "BOT INCURSION"
+            else:
+                msg += "SQUID INVASION"
+            
+            msg += " DETECTED\n"
+            msg += f"Level {level} | {duration} Hours\n"
+            msg += f"Difficulty Rating: {rating}\n"
+            msg += "Planet effects:\n"
+            for effect in effects:
+                msg += f"- {effect}"
                 
-            with open('health_bar_log.txt', 'r') as f:
-                lines = f.read().split('\n')
-                data = [float(i.split('\t')[0]) for i in lines if i != '']
-                pop = [int(i.split('\t')[1]) for i in lines if i != '' and '\t' in i]
-                
-            if len(data) < 25:
-                return
+            await bot.get_channel(HANGOUT_CHANNEL).send(f"```{msg}```")
+    with open("defenses.txt",'w') as f:
+        f.writelines([i + '\n' for i in defenses])
+    
+    with open("subfactions.json", 'r') as f:
+        prev_subfactions = json.load(f)
+        
+    msg = "!!=== MOVEMENT ALERT ===!!\n"
+    for idx in subfactions:
+        _, name = name_to_idx(int(idx), planets)
+        for sub in subfactions[idx]:
+            if sub not in prev_subfactions[idx]: # new subfaction
+                msg += f"{sub.upper()} detected on: {name.upper()}\n"
+        for sub in prev_subfactions[idx]:
+            if sub not in subfactions[idx]: # removed subfaction
+                msg += f"{sub.upper()} no longer detected on: {name.upper()}\n"
+    
+    if msg.count('\n') > 1:
+        await bot.get_channel(HANGOUT_CHANNEL).send(f"```{msg}```")
+    with open("subfactions.json", 'w') as f:
+        json.dump(subfactions, f)
             
-            d_data = [(data[i-1] - data[i])*2e6 for i in range(1, len(data))]
-            
-            dateax = [datetime.datetime.now() - datetime.timedelta(hours = i) for i in range(24)]
-            dateax.reverse()
-            
-            fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(15, 12), sharex=True, constrained_layout=True)
-            
-            ax1.set_ylabel("Reserve Forces, %")
-            ax1.plot(dateax, data[-24:])
-            
-            
-            if len(d_data) >= 25:
-                ax2 = ax1.twinx()
-                ax2.set_ylabel("Forces drain rate")
-                ax2.plot(dateax, d_data[-24:], linestyle = 'dashed', color='red', label='')
-
-            if len(pop) < 25:
-                pop = [np.nan] * (25 - len(pop)) + pop
-            
-            ax3.set_ylabel("Total diver population")
-            ax3.plot(dateax, pop[-24:])
-            
-            regions = [
-                        (1, 5, 'red', 'NA Peak'),
-                        (9, 13, 'gold', 'AU Peak'),
-                        (13, 16, 'cyan', 'SEA Peak'),
-                        (19, 23, 'limegreen', 'EU Peak')
-                    ]
-
-            unique_days = sorted(list(set([d.date() for d in dateax])))
-
-            for day in unique_days:
-                for start_h, end_h, color, label in regions:
-                    # Create datetime objects for the start and end of the peak on this day
-                    span_start = datetime.datetime.combine(day, datetime.time(hour=start_h))
-                    span_end = datetime.datetime.combine(day, datetime.time(hour=end_h))
-                    
-                    # Only draw if the span overlaps with our visible x-axis range
-                    if span_start < dateax[-1] and span_end > dateax[0]:
-                        # Clip the span to the actual axis limits
-                        actual_start = max(span_start, dateax[0])
-                        actual_end = min(span_end, dateax[-1])
-                        
-                        # Draw the span
-                        ax3.axvspan(actual_start, actual_end, color=color, alpha=0.2, label=label)
-
-            handles, labels = ax3.get_legend_handles_labels()
-            by_label = dict(zip(labels, handles))
-            ax3.legend(by_label.values(), by_label.keys(), loc='upper right', bbox_to_anchor=(1, 1))
-            
-            date_form = mdates.DateFormatter('%H:%M')
-            ax1.xaxis.set_major_formatter(date_form)
-            ax1.grid(True)
-            ax3.xaxis.set_major_formatter(date_form)
-            fig.autofmt_xdate()
-            plt.savefig('imgcache/health_logs.png',bbox_inches='tight')
-            plt.close()
-            
-            if datetime.datetime.now().hour == 18:
-                d_health = (data[-25] - data[-1]) / 24
-                lab_channel = bot.get_channel(LOUNGE_CHANNEL)
-                await lab_channel.send(f"```24-hour average drain rate: {d_health:.4f}%, or {int(d_health * 2000)}k per hour```", file=discord.File('imgcache/health_logs.png'))
-
-
-
 # Reminder to close threads when MO ends
 @tasks.loop(minutes = 30)
 async def reminder_loop():
@@ -471,19 +450,11 @@ async def get_command(ctx, *, name: str):
         msg += "-"*20 + '\n'
         msg += f"**{progress}% LIBERATED**\n{etamsg}\n"
     else:
-        level = static['level']
-        duration = static['duration']
         msg += f"LEVEL **{level}** | **{duration}** HOURS\n"
         msg += "-"*20 + '\n'
-        diff_idx = level / duration
-        if diff_idx <= 0.7:
-            rating = "Easy"
-        elif diff_idx < 1:
-            rating = "Routine"
-        elif diff_idx < 1.3:
-            rating = "Hard"
-        else:
-            rating = "IMPOSSIBLE"
+        level = static['level']
+        duration = static['duration']
+        rating = get_defense_rating(level, duration)
         msg += f"Difficulty rating: __{rating}__\n"
         msg += f"**{progress}% DEFENDED**\n{etamsg}\n"
         
