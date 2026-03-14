@@ -314,19 +314,19 @@ def get_regions_by_name(api_data, warinfo_data, planet_data, name):
         
         aF = region['availabilityFactor']
         is_available = region['isAvailable']
-        is_open = aF >= planet_health / planet_maxhealth 
+        owner = region['owner'] # 1 = Super Earth / Humans, 2 = Terminids, 3 = Automatons, 4 = Illuminate
         
         librate = get_region_librate_from_idx(rID)[1]
-        if librate is None:
+        if librate is None: # no data found -> something went wrong
             eta = "[CORRUPTED DATA, POSSIBLE AUTOMATON INTEFERENCE]"
-        elif librate > 0:
-            eta = (100 - progress) / librate
-        elif librate < 0:
-            eta = progress / librate
-        elif is_open and is_available:
-            eta = "Stalemate" 
-        elif is_open and not is_available:
+        elif owner == 1: # no need to do any calculations if the region is already ours, NEEDS CONFIRMATION WHETHER THIS BREAKS REGIONS ON A PLANET WITH AN ACTIVE DEFENSE
             eta = "**Liberty Secured**"
+        elif librate > 0: # liberation rate greater than 0 -> calculate time to 100% liberation
+            eta = (100 - progress) / librate
+        elif librate < 0: # liberation rate lesser than 0 -> calculate time to 0% liberation
+            eta = progress / librate
+        elif is_available: # if region is available, AND not ours, AND we're neither losing nor gaining liberation, we're most likely at 0% liberation without enough divers to get a positive liberation rate
+            eta = "Stalemate"
         else:
             eta = "Unavailable"
             
