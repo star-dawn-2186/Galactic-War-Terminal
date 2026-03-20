@@ -74,10 +74,6 @@ POOLS = {"num": [str(i) for i in range(2,501)],
          }
 
 
-
-def gwr_subunit():
-    return random.choice([])
-
 def generate_broadcast():
     
     try:

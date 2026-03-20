@@ -134,7 +134,7 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
             campaign_type = "Currently unreachable"
         defense = False
     else:
-        defense = True if campaign['type'] == 4 else False
+        defense = campaign['type'] == 4 
         campaign_type_map = {
                     0: "Liberation",
                     1: "Recon",
@@ -143,22 +143,24 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
                     4: "Defense"
                 }
         campaign_type = campaign_type_map[campaign['type']]
+    
+    events = api_data.get('planetEvents')
+    
+    flag = False
+    for event in events:
+        if event['planetIndex'] == int(idx):
+            faction = factions[campaign['race']]
+            health = event['health']
+            maxhealth = event['maxHealth']
+            level = maxhealth // 50000
+            ddl = convert_time(event['expireTime'], api_data)
+            duration = (event['expireTime'] - event['startTime']) // 3600
+            progress = round((1 - health / maxhealth) * 100, 2)
+            flag = True
+            break
         
-    if defense:
-        faction = factions[campaign['race']]
-        defenses = api_data.get('planetEvents')
-        for defense in defenses:
-            if defense['planetIndex'] == int(idx):
-                health = defense['health']
-                maxhealth = defense['maxHealth']
-                level = maxhealth // 50000
-                ddl = convert_time(defense['expireTime'], api_data)
-                duration = (defense['expireTime'] - defense['startTime']) // 3600
-                break
-        progress = round((1 - health / maxhealth) * 100, 2)
         
-        
-    else:
+    if not flag:
         faction = factions[api_data.get('planetStatus')[int(idx)]['owner']]  
         regen = api_data.get('planetStatus')[int(idx)]['regenPerSecond']
         health = api_data.get('planetStatus')[int(idx)]['health']
@@ -173,7 +175,10 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
     try:
         biome = planet_info[str(idx)]['biome']
     except: # backup from weird unstable training manual API
-        biome = planet_data.get(str(idx))['biome']['slug']
+        try:
+            biome = planet_data.get(idx)['biome']['slug']
+        except:
+            biome = "Unknown"
     try:
         environmentals = '\n'.join(planet_info[str(idx)]['environmentals'])
     except:
@@ -250,13 +255,32 @@ def get_effects_by_idx(api_data, idx):
             try:
                 effect_lst.append(effect_names[str(effect['galacticEffectId'])])
             except:
-                effect_lst.append(f"Unknown effect: {effect['galacticEffectId']}")
+                eID = effect['galacticEffectId']
+                # temporary squid subfaction bandaid
+                if eID == 1373:
+                    effect_lst.append("Tier 1 Exostorm")
+                elif eID == 1374:
+                    effect_lst.append("Tier 2 Exostorm")
+                elif eID == 1375:
+                    effect_lst.append("Tier 3 Exostorm")
+                elif eID == 1376:
+                    effect_lst.append("MAJ0R SPAC#TI%E DIST-&9&*8ANC3")
+                elif eID == 1378:
+                    effect_lst.append("Mindless Masses")
+                elif eID == 1379:
+                    effect_lst.append("Appropriators")
+                elif eID != 1377 and eID != 1380:
+                    effect_lst.append(f"Unknown effect: {effect['galacticEffectId']}")
+                    
             effect_ids.append(effect['galacticEffectId'])
     global_events = api_data.get('globalEvents')
     for event in global_events:
         if int(idx) in event['planetIndices'] or event['planetIndices'] == []:
             for effect in event['effectIds']:
-                effect_lst.append(effect_names[str(effect)])
+                try:
+                    effect_lst.append(effect_names[str(effect)])
+                except:
+                    effect_lst.append(f"Unknown effect: {effect}")
     try:
         dss = api_data.get('spaceStations')[0]
         if str(dss['planetIndex']) == str(idx):

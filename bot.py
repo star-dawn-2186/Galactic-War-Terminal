@@ -34,7 +34,7 @@ HQ_CHANNEL = 1369361948336062685
 LOUNGE_CHANNEL = 1427787543394385930
 LAB_CHANNEL = 1439653037554798612
 ADVISORY_CHANNEL = 1427786162272997526
-HANGOUT_CHANNEL = 1437744263763857553 # mockup
+HANGOUT_CHANNEL = 1386338755882913906 
 NEWS_CHANNEL = 1379181040731422822
 
 if not os.path.isfile("reminder_set.pkl"):
@@ -98,6 +98,7 @@ async def on_ready():
     ticker_loop.start()
     alert_loop.start()
     reminder_loop.start()
+    leaderboard_loop.start()
     
 
 
@@ -119,14 +120,24 @@ async def alert_loop():
     if None in [api, planets, warinfo]:
         return
     defenses = api.get('planetEvents')
+    decays = {}
     subfactions = {}
     for idx in range(len(api.get('planetStatus'))):
         subfactions[str(idx)] = []
+        
         effects, _ = get_effects_by_idx(api, idx)
+        stats, _, _ = get_stats_by_name(api, planets, warinfo, idx)
+        if 'decay' in stats:
+            decays[idx] = stats['decay']
+        
         for effect in effects:
-            for sub in ['CORPS', 'BRIGADE', 'STRAIN', 'CYBORG']:
+            for sub in ['CORPS', 'BRIGADE', 'STRAIN', 'CYBORG', 'Appropriator', 'Mindless Mass']: # just future proofing :)
                 if sub.lower() in effect.lower() and effect.lower() != "jet brigade factories":
                     subfactions[str(idx)].append(effect)
+                    
+                    
+    
+    
         
     init = False
     if not os.path.isfile("defenses.txt"):
@@ -137,13 +148,19 @@ async def alert_loop():
         with open("subfactions.json",'w') as f:
             json.dump(subfactions, f)
         init = True
+    if not os.path.isfile("decays.json"):
+        with open("decays.json",'w') as f:
+            json.dump(decays, f)
+        init = True
+    
     if init: return
     
     
     with open("defenses.txt", 'r') as f:
         prev_defenses = f.read().split('\n')
     for defense in defenses:
-        if str(defense['plantIndex']) not in prev_defenses: # New defense
+        if str(defense['planetIndex']) not in prev_defenses: # New defense
+            
             idx, name = name_to_idx(defense['planetIndex'], planets)
             stats, _, _ = get_stats_by_name(api, planets, warinfo, name)
             faction = stats['faction']
@@ -151,29 +168,32 @@ async def alert_loop():
                 
             level, duration = stats['level'], stats['duration']
             rating = get_defense_rating(level, duration)
-            msg = f"!!=== PRIORITY ALERT: THE {name.upper()} SYSTEM ===!!\n"
-            if faction == 'Terminid':
+            msg = f"!!=== PRIORITY ALERT: INCOMING "
+            if defense['eventType'] == 0:
+                msg += "URGENT LIBERATION ORDERS"
+            elif faction == 'Terminid':
                 msg += "BUG INFESTATION"
             elif faction == 'Automaton':
                 msg += "BOT INCURSION"
             else:
                 msg += "SQUID INVASION"
             
-            msg += " DETECTED\n"
+            msg += "  ===!!\n"
+            msg += f"Planet: {name}\n"
             msg += f"Level {level} | {duration} Hours\n"
             msg += f"Difficulty Rating: {rating}\n"
             msg += "Planet effects:\n"
             for effect in effects:
-                msg += f"- {effect}"
+                msg += f"- {effect}\n"
                 
             await bot.get_channel(HANGOUT_CHANNEL).send(f"```{msg}```")
     with open("defenses.txt",'w') as f:
-        f.writelines([i + '\n' for i in defenses])
+        f.writelines([str(i['planetIndex']) + '\n' for i in defenses])
     
     with open("subfactions.json", 'r') as f:
         prev_subfactions = json.load(f)
         
-    msg = "!!=== MOVEMENT ALERT ===!!\n"
+    msg = "!!=== PRIORITY ALERT: ENEMY MOVEMENT ===!!\n"
     for idx in subfactions:
         _, name = name_to_idx(int(idx), planets)
         for sub in subfactions[idx]:
@@ -187,6 +207,28 @@ async def alert_loop():
         await bot.get_channel(HANGOUT_CHANNEL).send(f"```{msg}```")
     with open("subfactions.json", 'w') as f:
         json.dump(subfactions, f)
+    
+    with open("decays.json", 'r') as f:
+        prev_decays = json.load(f)
+    msg = "!!== PRIORITY ALERT: PLANETARY RESISTANCE ==!!\n"
+    for idx in decays:
+        if idx in prev_decays:
+            if prev_decays[idx] != decays[idx]:
+                if prev_decays[idx] > decays[idx]:
+                    change = "DECREASED"
+                else:
+                    change = "INCREASED"
+                _, name = name_to_idx(int(idx), planets) 
+                # at this point, i have realized that me calling those functions that return way more data
+                # than is needed is extremely inefficient and will probably give all my past coding teachers an aneurysm
+                # however, i dare not fix what aint broken, for it is, and pun fully intended, the code we live by
+                msg += f"Decay on {name.upper()} has {change} to {decays[idx]}%\n"
+    if msg.count('\n') > 1:
+        await bot.get_channel(HANGOUT_CHANNEL).send(f"```{msg}```")
+    with open("decays.json", 'w') as f:
+        json.dump(decays, f)
+
+    
             
 # Reminder to close threads when MO ends
 @tasks.loop(minutes = 30)
@@ -804,6 +846,38 @@ async def send_msg(ctx):
 # Event Commands
 # ====================
 
+@tasks.loop(hours=1)
+async def leaderboard_loop():
+    if not os.path.isfile('event.json'):
+        return
+    with open("event.json",'r') as f:
+        LOGS = json.load(f)
+    if len(LOGS) == 0:
+        return
+    killcounts = []
+    for player in LOGS:
+        if 'KILLS' not in player: continue
+        
+        total_kills = sum(player['KILLS'])
+        avg_kills = total_kills / len(player['KILLS'])
+        killcounts.append((player, total_kills, round(avg_kills, 2)))
+    killcounts = sorted(killcounts, key=lambda x: x[1], reverse=True)
+    table = tabulate(killcounts[:5], headers=["Name", "Total Kills", "Average Kills"])
+    
+    try:
+        channel = bot.get_channel(1437744263763857553)
+        latest = [msg async for msg in channel.history(limit=1)]
+    except AttributeError:
+        print(f"Channel history cannot be accessed")
+        return
+    if len(latest) != 0 and latest[0].author.id == bot.user.id and "LIVE EVENT LEADERBOARD" in latest[0].content:
+        try:
+            await latest[0].delete()
+        except Exception:
+            pass
+
+    await channel.send(f"### LIVE EVENT LEADERBOARD\n```{table}```")
+
 @bot.command(name='event_start')
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
 async def event_start(ctx):
@@ -858,16 +932,10 @@ async def submit_stats(ctx, idx:str):
     else:
         for stat in LOGS[player]:
             LOGS[player][stat].append(player_stats[stat])
-    # melee kills 
-    # score = player_stats['MELEE KILLS']
-    
-    # kills - deaths
-    score = player_stats['KILLS'] * (1 - 0.1 * player_stats['DEATHS'])
-    if score < 0:
-        score = 0
+   
     with open('event.json','w') as f:
         json.dump(LOGS, f)
-    return await ctx.reply(f"```{summary}```\nYour stats have been logged for analysis.\n\n**Your score is:** ```{score}```")
+    return await ctx.reply(f"```{summary}```\nYour stats have been logged for analysis.")
     
     
 
