@@ -936,6 +936,8 @@ async def submit_stats(ctx, idx:str):
             LOGS[player][stat] = [player_stats[stat]]
     else:
         for stat in LOGS[player]:
+            print(type(player_stats))
+            print(player_stats)
             LOGS[player][stat].append(player_stats[stat])
    
     with open('event.json','w') as f:
