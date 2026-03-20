@@ -147,8 +147,9 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
     events = api_data.get('planetEvents')
     
     flag = False
+    
     for event in events:
-        if event['planetIndex'] == int(idx):
+        if str(event['planetIndex']) == str(idx):
             faction = factions[campaign['race']]
             health = event['health']
             maxhealth = event['maxHealth']
@@ -158,7 +159,7 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
             progress = round((1 - health / maxhealth) * 100, 2)
             flag = True
             break
-        
+
         
     if not flag:
         faction = factions[api_data.get('planetStatus')[int(idx)]['owner']]  
@@ -218,7 +219,7 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
         else:
             eta = "**STALEMATE**" 
     
-    if defense:
+    if flag:
         return {"id": idx, 
             "faction": faction, 
             "campaign": campaign_type, 
@@ -258,17 +259,17 @@ def get_effects_by_idx(api_data, idx):
                 eID = effect['galacticEffectId']
                 # temporary squid subfaction bandaid
                 if eID == 1373:
-                    effect_lst.append("Tier 1 Exostorm")
+                    effect_lst.append("Tier 1 Exostorm".upper())
                 elif eID == 1374:
-                    effect_lst.append("Tier 2 Exostorm")
+                    effect_lst.append("Tier 2 Exostorm".upper())
                 elif eID == 1375:
-                    effect_lst.append("Tier 3 Exostorm")
+                    effect_lst.append("Tier 3 Exostorm".upper())
                 elif eID == 1376:
                     effect_lst.append("MAJ0R SPAC#TI%E DIST-&9&*8ANC3")
                 elif eID == 1378:
-                    effect_lst.append("Mindless Masses")
+                    effect_lst.append("Mindless Masses".upper())
                 elif eID == 1379:
-                    effect_lst.append("Appropriators")
+                    effect_lst.append("Appropriators".upper())
                 elif eID != 1377 and eID != 1380:
                     effect_lst.append(f"Unknown effect: {effect['galacticEffectId']}")
                     
