@@ -3,11 +3,11 @@ from find_planets import *
 from horse import horse_predict
 
 def calc_gambit(idx, api_data, planet_data, warinfo):
-    idx, name = name_to_idx(name, planet_data)
+    idx, name = name_to_idx(idx, planet_data)
     target_stats, _, _ = get_stats_by_name(api_data, planet_data, warinfo, idx)
     
     
-    if not target_stats['campaign'] != 'Defense': # Not a defense, wdym gambit
+    if target_stats['campaign'] != 'Defense': # Not a defense, wdym gambit
         return None
     
     attacks = api_data.get('planetAttacks')
@@ -91,7 +91,6 @@ def calc_gambit(idx, api_data, planet_data, warinfo):
         target_effects += get_effects_by_idx(api_data, target_idx)
     
     if len(targets) > 1:
-        score += 0.3 * (len(targets) - 1)
         source_horse, target_horse = 999, 999
     else:
         source_horse = horse_predict(source_stats, source_effects)
@@ -114,6 +113,8 @@ def calc_gambit(idx, api_data, planet_data, warinfo):
 
     if score < 0:
             score = 0
+    if len(targets) > 1:  
+        score += 0.3 * (len(targets) - 1)
     if score != 0:
         if dss == 'source':
             score += 0.2
