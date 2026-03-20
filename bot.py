@@ -464,7 +464,8 @@ async def get_command(ctx, *, name: str):
     progress = static['progress']
     current = time.time()
     campaign = static['campaign']
-    defense = campaign == 'Defense'
+    flag = 'level' in static
+    print(static)
     if campaign == "Already liberated":
         etamsg = "**Liberty Secured**"
         progress = 100
@@ -488,14 +489,15 @@ async def get_command(ctx, *, name: str):
     msg += format_environmental_data(environmentals.split('\n'))
     msg += f"### {campaign.upper()}\n"
     
-    if not defense:
+    if not flag:
         msg += "-"*20 + '\n'
         msg += f"**{progress}% LIBERATED**\n{etamsg}\n"
     else:
-        msg += f"LEVEL **{level}** | **{duration}** HOURS\n"
+        
         msg += "-"*20 + '\n'
         level = static['level']
         duration = static['duration']
+        msg += f"LEVEL **{level}** | **{duration}** HOURS\n"
         rating = get_defense_rating(level, duration)
         msg += f"Difficulty rating: __{rating}__\n"
         msg += f"**{progress}% DEFENDED**\n{etamsg}\n"
