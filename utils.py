@@ -174,7 +174,7 @@ def format_gambitcalc(result):
         return result
     score = result['score']
     source_name, source_required = result['source']['name'].upper(), result['source']['required']
-    target_names = '\n'.join([name.upper() for name in result['targets']['names']])
+    target_names = [name.upper() for name in result['targets']['names']]
     target_required = result['targets']['required']
     
     msg = f"### Gambit feasibility rating: {score}\n"

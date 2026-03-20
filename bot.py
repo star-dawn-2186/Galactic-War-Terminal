@@ -623,6 +623,8 @@ async def gambitcalc(ctx, *, name: str):
     
     response = calc_gambit(name, api, planets, warinfo)
     msg = format_gambitcalc(response)
+    if msg is None:
+        msg = "This is not a defense."
     return await ctx.reply(msg)
 
 # ====================
@@ -858,11 +860,12 @@ async def leaderboard_loop():
         return
     killcounts = []
     for player in LOGS:
-        if 'KILLS' not in player: continue
-        
-        total_kills = sum(player['KILLS'])
-        avg_kills = total_kills / len(player['KILLS'])
+        if 'KILLS' not in LOGS[player]: continue
+        kills = LOGS[player]['KILLS']
+        total_kills = sum([int(i) for i in kills])
+        avg_kills = total_kills / len(kills)
         killcounts.append((player, total_kills, round(avg_kills, 2)))
+
     killcounts = sorted(killcounts, key=lambda x: x[1], reverse=True)
     table = tabulate(killcounts[:5], headers=["Name", "Total Kills", "Average Kills"])
     
