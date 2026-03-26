@@ -132,9 +132,7 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
             campaign_type = "Already liberated"
         else:
             campaign_type = "Currently unreachable"
-        defense = False
     else:
-        defense = campaign['type'] == 4 
         campaign_type_map = {
                     0: "Liberation",
                     1: "Recon",
@@ -211,7 +209,7 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
             eta = "**UNCERTAIN**"
         elif librate > 0:
             eta = (100 - progress) / librate
-            if defense:
+            if flag:
                 if time.time() + eta * 3600 > ddl:
                     eta = (time.time() - ddl) / 3600
         elif librate < 0:
@@ -256,22 +254,7 @@ def get_effects_by_idx(api_data, idx):
             try:
                 effect_lst.append(effect_names[str(effect['galacticEffectId'])])
             except:
-                eID = effect['galacticEffectId']
-                # temporary squid subfaction bandaid
-                if eID == 1373:
-                    effect_lst.append("Tier 1 Exostorm".upper())
-                elif eID == 1374:
-                    effect_lst.append("Tier 2 Exostorm".upper())
-                elif eID == 1375:
-                    effect_lst.append("Tier 3 Exostorm".upper())
-                elif eID == 1376:
-                    effect_lst.append("MAJ0R SPAC#TI%E DIST-&9&*8ANC3")
-                elif eID == 1378:
-                    effect_lst.append("Mindless Masses".upper())
-                elif eID == 1379:
-                    effect_lst.append("Appropriators".upper())
-                elif eID != 1377 and eID != 1380:
-                    effect_lst.append(f"Unknown effect: {effect['galacticEffectId']}")
+                effect_lst.append(f"Unknown effect: {effect['galacticEffectId']}")
                     
             effect_ids.append(effect['galacticEffectId'])
     global_events = api_data.get('globalEvents')
