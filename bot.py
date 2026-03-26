@@ -106,9 +106,20 @@ async def on_ready():
 @bot.event
 async def on_thread_create(thread):
     if thread.parent.id == HQ_CHANNEL:
-        GWR_channel = bot.get_channel(botconfig.config['GWR_CHANNEL']['value'])
+        channel = bot.get_channel(NEWS_CHANNEL)
         thread_link = f"https://discord.com/channels/{thread.guild.id}/{thread.id}"
-        await GWR_channel.send(f"```New Major Order detected. Opening discussion thread.```\n{thread_link}")
+        confirm_msg = f"New thread: {thread_link}\nSend New MO thread notification?\n-# Send y or n"
+        await bot.get_channel(LOUNGE_CHANNEL).send(confirm_msg)
+        def is_valid_confirm(m):
+            return m.content.lower() in ['y','n'] and is_authorized(m)
+        try:
+            confirm = await bot.wait_for('message', check=is_valid_confirm, timeout = 600)
+        except asyncio.TimeoutError:
+            return await bot.get_channel(LOUNGE_CHANNEL).send("Timed out, notif not sent.")
+        if confirm.content.lower() == 'y':
+            return await channel.send(f"```New Major Order detected. Opening discussion thread.```\n{thread_link}")
+        else:
+            return await bot.get_channel(LOUNGE_CHANNEL).send("Notif not sent.")
 
 
 
@@ -131,7 +142,7 @@ async def alert_loop():
             decays[idx] = stats['decay']
         
         for effect in effects:
-            for sub in ['CORPS', 'BRIGADE', 'STRAIN', 'CYBORG', 'Appropriator', 'Mindless Mass']: # just future proofing :)
+            for sub in ['CORPS', 'BRIGADE', 'STRAIN', 'CYBORG', 'Appropriator', 'Mindless Mass', 'DRAGONROACH', 'HIVE LORD']: 
                 if sub.lower() in effect.lower() and effect.lower() != "jet brigade factories":
                     subfactions[str(idx)].append(effect)
                     
@@ -168,7 +179,7 @@ async def alert_loop():
                 
             level, duration = stats['level'], stats['duration']
             rating = get_defense_rating(level, duration)
-            msg = f"!!=== PRIORITY ALERT: INCOMING "
+            msg = "!!=== PRIORITY ALERT: INCOMING "
             if defense['eventType'] == 0:
                 msg += "URGENT LIBERATION ORDERS"
             elif faction == 'Terminid':
@@ -275,7 +286,6 @@ async def ticker_loop():
     
     if None in [api, planets, warinfo]:
        return await send_error_msg()
-   
     campaigns = api.get('campaigns')
     libdict = {}
     leaderboard = []
@@ -337,11 +347,11 @@ async def ticker_loop():
 
             try:
                 with open("stock_ticker.gif", "rb") as fp:
-                    await channel.send(file=discord.File(fp, filename="stock_ticker.gif"))
+                    await channel.send(file=discord.File(fp, filename="stock_ticker.gif"), silent=True)
             except Exception:
                 print("Streaming stock ticker GIF failed, using fallback")
                 # Fallback to previous behavior if streaming fails
-                await channel.send(file=discord.File("stock_ticker.gif"))
+                await channel.send(file=discord.File("stock_ticker.gif"),silent=True)
     else:
         liblist = []
         for key in libdict:
@@ -422,7 +432,7 @@ async def dss_voting_command(ctx):
         await ctx.reply("DSS data offline.")
     
 @dss_voting_command.error
-async def get_error(ctx, error):
+async def dss_voting_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
         await ctx.reply(f"Look up.\n-# Command on cooldown, try again after {error.retry_after:.2f}s.")
     else:
@@ -606,7 +616,7 @@ async def effcalc_command(ctx, *, name: str):
     
     else:
         msg += f" - Non-region planetary eff: {planet_eff}\n"
-        msg += f"Region eff:\n"
+        msg += "Region eff:\n"
         msg += f"```{tabulate(effs)}```"
     
     return await ctx.reply(msg)
@@ -862,7 +872,7 @@ async def leaderboard_loop():
     for player in LOGS:
         if 'KILLS' not in LOGS[player]: continue
         kills = LOGS[player]['KILLS']
-        total_kills = sum([int(i) for i in kills])
+        total_kills = sum([int(i) for i in kills if i != 'N/A'])
         avg_kills = total_kills / len(kills)
         killcounts.append((player, total_kills, round(avg_kills, 2)))
 
@@ -873,7 +883,7 @@ async def leaderboard_loop():
         channel = bot.get_channel(1437744263763857553)
         latest = [msg async for msg in channel.history(limit=1)]
     except AttributeError:
-        print(f"Channel history cannot be accessed")
+        print("Channel history cannot be accessed")
         return
     if len(latest) != 0 and latest[0].author.id == bot.user.id and "LIVE EVENT LEADERBOARD" in latest[0].content:
         try:
@@ -936,9 +946,10 @@ async def submit_stats(ctx, idx:str):
             LOGS[player][stat] = [player_stats[stat]]
     else:
         for stat in LOGS[player]:
-            print(type(player_stats))
-            print(player_stats)
-            LOGS[player][stat].append(player_stats[stat])
+            if stat not in player_stats:
+                LOGS[player][stat].append('N/A')
+            else:
+                LOGS[player][stat].append(player_stats[stat])
    
     with open('event.json','w') as f:
         json.dump(LOGS, f)

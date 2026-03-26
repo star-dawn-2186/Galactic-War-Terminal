@@ -41,11 +41,11 @@ async def update_librate(p_filename=p_FILENAME, r_filename = r_FILENAME):
     with open(p_filename,'r') as f:
         healthdict = json.load(f)
     
-    defenses = []
+    events = []
     for event in planet_events:
-        if event['eventType'] == 1:
+        if 'plantIndex' in event:
             idx = event['planetIndex']
-            defenses.append(int(idx))
+            events.append(int(idx))
             players = planet_status[idx]['players']
             health = int(event['health'])
             prev_health = healthdict[str(idx)][0]
@@ -61,7 +61,7 @@ async def update_librate(p_filename=p_FILENAME, r_filename = r_FILENAME):
             healthdict[str(idx)] = [health, librate, delta_health, players]
             
     for planet in planet_status:
-        if int(planet['index']) in defenses:
+        if int(planet['index']) in events:
             continue
         
         players = planet['players']
