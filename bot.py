@@ -339,7 +339,7 @@ async def ticker_loop():
                 continue
             # Stream the file from disk to avoid building large in-memory payloads.
             # If a previous bot message exists, delete it and send a fresh upload.
-            if len(latest) != 0 and latest[0].author.id == bot.user.id:
+            if len(latest) != 0 and latest[0].author.id == bot.user.id and not latest[0].content:
                 try:
                     await latest[0].delete()
                 except Exception:
@@ -475,7 +475,6 @@ async def get_command(ctx, *, name: str):
     current = time.time()
     campaign = static['campaign']
     flag = 'level' in static
-    print(static)
     if campaign == "Already liberated":
         etamsg = "**Liberty Secured**"
         progress = 100

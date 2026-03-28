@@ -43,7 +43,7 @@ async def update_librate(p_filename=p_FILENAME, r_filename = r_FILENAME):
     
     events = []
     for event in planet_events:
-        if 'plantIndex' in event:
+        if 'planetIndex' in event:
             idx = event['planetIndex']
             events.append(int(idx))
             players = planet_status[idx]['players']
@@ -57,6 +57,7 @@ async def update_librate(p_filename=p_FILENAME, r_filename = r_FILENAME):
                 delta_health = prev_health - health
                 healthp = delta_health / maxhealth * 100
                 librate = round(healthp / (UPDATE_INTERVAL / 3600),2)
+
                 
             healthdict[str(idx)] = [health, librate, delta_health, players]
             
