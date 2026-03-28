@@ -39,7 +39,10 @@ def calc_region_eff_from_name(api_data, warinfo_data, planet_data, name):
         planet_regen = 0
         
     if planet_dhealth > 0:
-        non_region_players = planet_players - region_players
+        if get_campaign_for_planet(api_data, idx)['type'] == 4: # 4 = defense campaign, all planet players count as non-region players during defense campaigns
+            non_region_players = planet_players
+        else: # otherwise remove region players from planet player number
+            non_region_players = planet_players - region_players
         non_region_pop = non_region_players / total_players * 100
         non_region_eff = int((planet_dhealth + planet_regen * UPDATE_INTERVAL) / non_region_pop / (UPDATE_INTERVAL / 3600))
     
