@@ -982,4 +982,10 @@ intents.guilds = True
 
 if __name__ == '__main__':
     bot.run(TOKEN)
-
+    
+    
+# there once were a couple of users
+# with brainrotted senses of humor
+# they had an obsession
+# with the numbers six-seven
+# so i obliged them with this maneuver
