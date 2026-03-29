@@ -198,24 +198,36 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
         if str(region['planetIndex']) == str(idx):
             city = True
             break
-    
+    required = 0
     if campaign_type in ['Already liberated', 'Currently unreachable']:
         librate = 0
         eta = 'N/A'
         
-    else:
+    elif not city: # no regions, simple eta calc
         librate = get_librate_from_idx(idx)[1]
         if librate is None:
             eta = "**UNCERTAIN**"
         elif librate > 0:
             eta = (100 - progress) / librate
-            if flag:
-                if time.time() + eta * 3600 > ddl:
-                    eta = (time.time() - ddl) / 3600
         elif librate < 0:
             eta = progress / librate
         else:
             eta = "**STALEMATE**" 
+    else: # has regions, fancy schmancy extrapolation
+        
+        health_copy = health
+        all_regions, _ = get_regions_by_name(api_data, warinfo_data, planet_data, idx)
+        for region in all_regions:
+            if region['eta'] != "**Liberty Secured**":
+                required += region['eq_size'] * 1e6
+                health_copy -= region['libbomb'] * maxhealth
+                if health_copy <= 0:
+                    break
+            elif region == all_regions[-1]:
+                required = health
+        required = min([required, health])
+        eta = None
+        
     
     if flag:
         return {"id": idx, 
@@ -228,8 +240,10 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
             "pop%": pop,
             "level": level,
             "duration": duration,
+            "ddl": ddl,
             "progress": progress,
-            "eta": eta}, UNnames, name
+            "eta": eta,
+            "required": required}, UNnames, name
     else:
         return {"id": idx, 
                 "faction": faction, 
@@ -242,7 +256,8 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
                 "decay": decay, 
                 "regen": regen,
                 "progress": progress,
-                "eta": eta}, UNnames, name
+                "eta": eta,
+                "required": required}, UNnames, name
         
 
 def get_effects_by_idx(api_data, idx):

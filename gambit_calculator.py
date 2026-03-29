@@ -63,6 +63,8 @@ def calc_gambit(idx, api_data, planet_data, warinfo):
                     target_health -= region['libbomb'] * target_stats['level'] * 50000
                     if target_health <= 0:
                         break
+                elif region == target_regions[-1]:
+                    target_required = target_health
               
     # source hp calc
     planet_status = api_data.get('planetStatus')
@@ -82,6 +84,8 @@ def calc_gambit(idx, api_data, planet_data, warinfo):
                 target_health -= region['libbomb'] * source_maxhealth
                 if target_health <= 0:
                     break
+            elif region == source_regions[-1]: # all regions liberated but not planet
+                source_required = source_health
         source_required = min([source_required, source_health]) # for scenarios where liberating a region requires more hp than just liberating the base planet
     
 

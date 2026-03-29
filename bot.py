@@ -145,10 +145,7 @@ async def alert_loop():
             for sub in ['CORPS', 'BRIGADE', 'STRAIN', 'CYBORG', 'Appropriator', 'Mindless Mass', 'DRAGONROACH', 'HIVE LORD']: 
                 if sub.lower() in effect.lower() and effect.lower() != "jet brigade factories":
                     subfactions[str(idx)].append(effect)
-                    
-                    
-    
-    
+
         
     init = False
     if not os.path.isfile("defenses.txt"):
@@ -298,6 +295,19 @@ async def ticker_loop():
         faction = stats['faction']
         librate = get_librate_from_idx(idx)[1]
         eta = stats['eta']
+        if eta is None: # the fact that this bit of code is copied from effcalc because of circular imports had it been in find_planets,
+            required = stats['required'] # which would have been way simpler, 
+            region_eff, non_region_eff = calc_region_eff_from_name(api, warinfo, planets, name) # and now it's copied multiple times
+            if non_region_eff == 'N/A': # across multiple functions, each with a different naming scheme for the api variables
+                effs = [i[1] for i in region_eff if i[1] != 'N/A'] # is just a cry for help
+            else: # god, do you see this? do you see the creation of your creation?
+                effs = [i[1] for i in region_eff if i[1] != 'N/A'] + [non_region_eff] # do you not fear? was this what you had faced then?
+            
+            if effs == []:
+                eta = "N/A"
+            else:
+                avg_eff = sum(effs) / len(effs)
+                eta = required / (avg_eff * stats['pop%'])
         if librate is None:
             return
         leaderboard.append([name,pop,librate,eta,faction[0].lower(),defense])
@@ -341,17 +351,20 @@ async def ticker_loop():
             # If a previous bot message exists, delete it and send a fresh upload.
             if len(latest) != 0 and latest[0].author.id == bot.user.id and not latest[0].content:
                 try:
-                    await latest[0].delete()
+                    with open("stock_ticker.gif", "rb") as fp:
+                        file = discord.File(fp, filename="stock_ticker.gif")
+                        await latest[0].edit(attachments=[file])
                 except Exception:
                     pass
-
-            try:
-                with open("stock_ticker.gif", "rb") as fp:
-                    await channel.send(file=discord.File(fp, filename="stock_ticker.gif"), silent=True)
-            except Exception:
-                print("Streaming stock ticker GIF failed, using fallback")
-                # Fallback to previous behavior if streaming fails
-                await channel.send(file=discord.File("stock_ticker.gif"),silent=True)
+                
+            else:
+                try:
+                    with open("stock_ticker.gif", "rb") as fp:
+                        await channel.send(file=discord.File(fp, filename="stock_ticker.gif"), silent=True)
+                except Exception:
+                    print("Streaming stock ticker GIF failed, using fallback")
+                    # Fallback to previous behavior if streaming fails
+                    await channel.send(file=discord.File("stock_ticker.gif"),silent=True)
     else:
         liblist = []
         for key in libdict:
@@ -475,6 +488,22 @@ async def get_command(ctx, *, name: str):
     current = time.time()
     campaign = static['campaign']
     flag = 'level' in static
+    
+    if eta is None:
+        required = static['required']
+        region_eff, non_region_eff = calc_region_eff_from_name(data, warinfo, planet, name)
+        if non_region_eff == 'N/A':
+            effs = [i[1] for i in region_eff if i[1] != 'N/A']
+        else:
+            effs = [i[1] for i in region_eff if i[1] != 'N/A'] + [non_region_eff]
+        
+        if effs == []:
+            eta = "N/A"
+        else:
+            avg_eff = sum(effs) / len(effs)
+            eta = required / (avg_eff * static['pop%'])
+ 
+    
     if campaign == "Already liberated":
         etamsg = "**Liberty Secured**"
         progress = 100
@@ -485,10 +514,13 @@ async def get_command(ctx, *, name: str):
         etamsg = eta
     elif float(eta) >= 0:
         etamsg = f"**Full Liberation <t:{int(current + eta * 3600)}:R>**"
+        if 'ddl' in static:
+            deadline = static['ddl']
+            etamsg += f"\n**Planet lost: <t:{int(deadline)}:R>**"
     elif float(eta) < 0:
         etamsg = f"**Full Withdrawal <t:{int(current - eta * 3600)}:R>**"
     if has_region:
-        etamsg += "\n-# Regions detected, liberation calculator w/ Regions WIP"
+        etamsg += "\n-# Regions detected, using experimental ETA extrapolation algorithm"
     
     msg = f"## Planet Summary: {name.upper()}\n"
     
@@ -757,19 +789,8 @@ async def sitrep(ctx):
     api = await api_data()
     if api is None:
         return await send_error_msg(ctx)
-    
-    # Cyberstan Offensive Special
-    if api.get("globalResources"):
-        health_bar = api.get("globalResources")[0]
-        reinforcements_left = health_bar['currentValue'] / 2000000
-        drain_rate = health_bar["changePerSecond"] * -3600 / 2000000
-        eta = reinforcements_left / drain_rate * 3600
-        failure_ddl = int(time.time() + eta)
-        formatted_health = f"\n## ///FORCES IN RESERVE///\n**{reinforcements_left:.4f}%** | Draining at: **{drain_rate:.4f}%/h**\nProjected Operation Failure: <t:{failure_ddl}:R>"
-    else:
-        formatted_health = ''
         
-    return await ctx.reply(acecon_format(ACECON) + formatted_health + f"\n## __Advisory Summary__\n{ADVISORY}")
+    return await ctx.reply(acecon_format(ACECON) + f"\n## __Advisory Summary__\n{ADVISORY}")
 
 @sitrep.error
 async def sitrep_error(ctx, error):
