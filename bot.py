@@ -220,17 +220,19 @@ async def alert_loop():
         prev_decays = json.load(f)
     msg = "!!== PRIORITY ALERT: PLANETARY RESISTANCE ==!!\n"
     for idx in decays:
-        if idx in prev_decays:
-            if prev_decays[idx] != decays[idx]:
-                if prev_decays[idx] > decays[idx]:
-                    change = "DECREASED"
-                else:
-                    change = "INCREASED"
-                _, name = name_to_idx(int(idx), planets) 
-                # at this point, i have realized that me calling those functions that return way more data
-                # than is needed is extremely inefficient and will probably give all my past coding teachers an aneurysm
-                # however, i dare not fix what aint broken, for it is, and pun fully intended, the code we live by
+        if str(idx) in prev_decays:
+            change = ''
+            if prev_decays[str(idx)] > decays[idx]:
+                change = "DECREASED"
+            elif prev_decays[str(idx)] < decays[idx]:
+                change = "INCREASED"
+            _, name = name_to_idx(int(idx), planets) 
+            # at this point, i have realized that me calling those functions that return way more data
+            # than is needed is extremely inefficient and will probably give all my past coding teachers an aneurysm
+            # however, i dare not fix what aint broken, for it is, and pun fully intended, the code we live by
+            if change != '':
                 msg += f"Decay on {name.upper()} has {change} to {decays[idx]}%\n"
+
     if msg.count('\n') > 1:
         await bot.get_channel(HANGOUT_CHANNEL).send(f"```{msg}```")
     with open("decays.json", 'w') as f:
@@ -306,7 +308,10 @@ async def ticker_loop():
                 eta = "N/A"
             else:
                 avg_eff = sum(effs) / len(effs)
-                eta = required / (avg_eff * stats['pop%'])
+                if avg_eff * stats['pop%'] == 0: 
+                    eta = "N/A"
+                else:
+                    eta = required / (avg_eff * stats['pop%'])
         if librate is None:
             return
         leaderboard.append([name,pop,librate,eta,faction[0].lower(),defense])

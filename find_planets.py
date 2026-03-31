@@ -409,5 +409,4 @@ def calc_required_hp(api_data, planet_data, warinfo, idx):
                     break
     else:
         required = health
-    print(required)
     return min([required,health_copy])
