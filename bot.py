@@ -295,14 +295,13 @@ async def ticker_loop():
         faction = stats['faction']
         librate = get_librate_from_idx(idx)[1]
         eta = stats['eta']
-        if eta is None: # the fact that this bit of code is copied from effcalc because of circular imports had it been in find_planets,
-            required = stats['required'] # which would have been way simpler, 
-            region_eff, non_region_eff = calc_region_eff_from_name(api, warinfo, planets, name) # and now it's copied multiple times
-            if non_region_eff == 'N/A': # across multiple functions, each with a different naming scheme for the api variables
-                effs = [i[1] for i in region_eff if i[1] != 'N/A'] # is just a cry for help
-            else: # god, do you see this? do you see the creation of your creation?
-                effs = [i[1] for i in region_eff if i[1] != 'N/A'] + [non_region_eff] # do you not fear? was this what you had faced then?
-            
+        if eta is None: 
+            required = calc_required_hp(api, planets, warinfo, idx) 
+            region_eff, non_region_eff = calc_region_eff_from_name(api, warinfo, planets, name) 
+            if non_region_eff == 'N/A': 
+                effs = [i[1] for i in region_eff if i[1] != 'N/A'] 
+            else: 
+                effs = [i[1] for i in region_eff if i[1] != 'N/A'] + [non_region_eff] 
             if effs == []:
                 eta = "N/A"
             else:
@@ -454,7 +453,7 @@ async def dss_voting_error(ctx, error):
 # Get Planet stats (Thanks Beef!)
 @bot.command(name="get")
 @commands.dynamic_cooldown(custom_cooldown, commands.BucketType.user)
-async def get_command(ctx, *, name: str):
+async def get_command(ctx, *, name: str, help="Fetches real-time info about a planet given its name (case insensitive) or planet ID."):
     data = await api_data()
     planet = await planet_data()
     warinfo = await warinfo_data()
@@ -464,7 +463,7 @@ async def get_command(ctx, *, name: str):
     if stats is None:
         return await ctx.reply("Unable to find planet.")
     static, names, name = stats
-    id = static['id']
+    idx = static['id']
     
     has_region = static['has regions']
     environmentals = static['environmentals']
@@ -479,7 +478,7 @@ async def get_command(ctx, *, name: str):
     for key in static:
         if not (key == 'progress' or key == 'eta'):
             static_txt.append([key,str(static[key])])
-    effects = get_effects_by_idx(data, id)[0]
+    effects = get_effects_by_idx(data, idx)[0]
     
     
     
@@ -488,9 +487,9 @@ async def get_command(ctx, *, name: str):
     current = time.time()
     campaign = static['campaign']
     flag = 'level' in static
-    
-    if eta is None:
-        required = static['required']
+    usealg = eta is None
+    if usealg:
+        required = calc_required_hp(data, planet, warinfo, idx)
         region_eff, non_region_eff = calc_region_eff_from_name(data, warinfo, planet, name)
         if non_region_eff == 'N/A':
             effs = [i[1] for i in region_eff if i[1] != 'N/A']
@@ -519,7 +518,7 @@ async def get_command(ctx, *, name: str):
             etamsg += f"\n**Planet lost: <t:{int(deadline)}:R>**"
     elif float(eta) < 0:
         etamsg = f"**Full Withdrawal <t:{int(current - eta * 3600)}:R>**"
-    if has_region:
+    if usealg:
         etamsg += "\n-# Regions detected, using experimental ETA extrapolation algorithm"
     
     msg = f"## Planet Summary: {name.upper()}\n"
@@ -592,7 +591,7 @@ async def getregion_command(ctx, *, name: str):
     return await ctx.reply(result)    
     
 # Get Top Ten planet stats
-@bot.command(name="get_top")
+@bot.command(name="get_top", help="Fetches info about the planets with the most amount of divers deployed.")
 @commands.dynamic_cooldown(custom_cooldown, commands.BucketType.user)
 async def gettop_command(ctx):
     api = await api_data()
@@ -653,7 +652,7 @@ async def effcalc_command(ctx, *, name: str):
     return await ctx.reply(msg)
 
 # Gambit calcs
-@bot.command(name="gambit")
+@bot.command(name="gambit", help="Calculates feasibility of a gambit, given the name of the planet currently being attacked.")
 async def gambitcalc(ctx, *, name: str):
     api = await api_data()
     planets = await planet_data()
@@ -778,7 +777,7 @@ async def on_message(message):
     
 
 # Sitrep
-@bot.command(name="sitrep")
+@bot.command(name="sitrep", help="Fetches a short summary of the current orders and situation.")
 @commands.dynamic_cooldown(custom_cooldown, commands.BucketType.user)
 async def sitrep(ctx):
     with open('ACECON.txt','r') as f:

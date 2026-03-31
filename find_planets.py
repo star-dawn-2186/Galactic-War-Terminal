@@ -198,12 +198,18 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
         if str(region['planetIndex']) == str(idx):
             city = True
             break
-    required = 0
+    
+    use_alg = False
+    if city:
+        regions, _ = get_regions_by_name(api_data, warinfo_data, planet_data, idx)
+        if not all(region['eta'] == "**Liberty Secured**" for region in regions):
+            use_alg = True
+    
     if campaign_type in ['Already liberated', 'Currently unreachable']:
         librate = 0
         eta = 'N/A'
         
-    elif not city: # no regions, simple eta calc
+    elif not use_alg: # no regions, simple eta calc
         librate = get_librate_from_idx(idx)[1]
         if librate is None:
             eta = "**UNCERTAIN**"
@@ -213,19 +219,7 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
             eta = progress / librate
         else:
             eta = "**STALEMATE**" 
-    else: # has regions, fancy schmancy extrapolation
-        
-        health_copy = health
-        all_regions, _ = get_regions_by_name(api_data, warinfo_data, planet_data, idx)
-        for region in all_regions:
-            if region['eta'] != "**Liberty Secured**":
-                required += region['eq_size'] * 1e6
-                health_copy -= region['libbomb'] * maxhealth
-                if health_copy <= 0:
-                    break
-            elif region == all_regions[-1]:
-                required = health
-        required = min([required, health])
+    else:
         eta = None
         
     
@@ -243,7 +237,8 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
             "ddl": ddl,
             "progress": progress,
             "eta": eta,
-            "required": required}, UNnames, name
+            "health": health,
+            "maxhealth": maxhealth}, UNnames, name
     else:
         return {"id": idx, 
                 "faction": faction, 
@@ -257,7 +252,8 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
                 "regen": regen,
                 "progress": progress,
                 "eta": eta,
-                "required": required}, UNnames, name
+                "health": health,
+                "maxhealth": maxhealth}, UNnames, name
         
 
 def get_effects_by_idx(api_data, idx):
@@ -380,3 +376,38 @@ def get_defense_rating(level, duration):
         rating = "IMPOSSIBLE"
         
     return rating
+
+def calc_required_hp(api_data, planet_data, warinfo, idx):
+    stats, _, _ = get_stats_by_name(api_data, planet_data, warinfo, idx)
+    health = stats['health']
+    dmg_mirroring = stats['campaign'] == 'Defense'
+    required = 0
+    health_copy = health
+    bypass = False
+    if stats['has regions']: 
+        regions, _ = get_regions_by_name(api_data, warinfo, planet_data, idx)
+        regions = sorted(regions, key=lambda x: x['availabilityFactor'], reverse=True)
+        if all(region['eta'] == "**Liberty Secured**" for region in regions):
+            bypass = True
+    else:
+        bypass = True
+        
+    if not bypass:
+        for region in regions:
+            if region['eta'] != "**Liberty Secured**":
+                required += (1-region['progress'] * 0.01) * region['eq_size'] * 1e6
+                if dmg_mirroring:
+                    health -= (1-region['progress'] * 0.01) * region['eq_size'] * 1e6
+                    if health < 0:
+                        required += health
+                        health = 0
+                        break
+                health -= region['libbomb'] * stats['maxhealth']
+                if health < 0:
+                    required += health
+                    health = 0
+                    break
+    else:
+        required = health
+    print(required)
+    return min([required,health_copy])
