@@ -299,19 +299,12 @@ async def ticker_loop():
         eta = stats['eta']
         if eta is None: 
             required = calc_required_hp(api, planets, warinfo, idx) 
-            region_eff, non_region_eff = calc_region_eff_from_name(api, warinfo, planets, name) 
-            if non_region_eff == 'N/A': 
-                effs = [i[1] for i in region_eff if i[1] != 'N/A'] 
-            else: 
-                effs = [i[1] for i in region_eff if i[1] != 'N/A'] + [non_region_eff] 
-            if effs == []:
+            _, _, weighted_eff = calc_region_eff_from_name(api, warinfo, planets, name) 
+            
+            if weighted_eff * stats['pop%'] == 0: 
                 eta = "N/A"
             else:
-                avg_eff = sum(effs) / len(effs)
-                if avg_eff * stats['pop%'] == 0: 
-                    eta = "N/A"
-                else:
-                    eta = required / (avg_eff * stats['pop%'])
+                eta = required / (weighted_eff * stats['pop%'])
         if librate is None:
             return
         leaderboard.append([name,pop,librate,eta,faction[0].lower(),defense])
@@ -422,7 +415,7 @@ async def config_command(ctx):
 # Kill command
 @bot.command(name="kill")
 async def kill_command(ctx):
-    if ctx.author.id == joe:
+    if ctx.author.id == joe: # because some idiot's gonna try and kill the GWT at some point
         await ctx.reply("Powering down.")
         sys.exit()  
     
@@ -456,9 +449,9 @@ async def dss_voting_error(ctx, error):
         print(error)
 
 # Get Planet stats (Thanks Beef!)
-@bot.command(name="get")
+@bot.command(name="get", help="Fetches real-time info about a planet.")
 @commands.dynamic_cooldown(custom_cooldown, commands.BucketType.user)
-async def get_command(ctx, *, name: str, help="Fetches real-time info about a planet given its name (case insensitive) or planet ID."):
+async def get_command(ctx, *, name: str = commands.parameter(description="- Name (case insensitive) or ID of the desired planet.")):
     data = await api_data()
     planet = await planet_data()
     warinfo = await warinfo_data()
@@ -495,17 +488,11 @@ async def get_command(ctx, *, name: str, help="Fetches real-time info about a pl
     usealg = eta is None
     if usealg:
         required = calc_required_hp(data, planet, warinfo, idx)
-        region_eff, non_region_eff = calc_region_eff_from_name(data, warinfo, planet, name)
-        if non_region_eff == 'N/A':
-            effs = [i[1] for i in region_eff if i[1] != 'N/A']
+        _, _, weighted_eff = calc_region_eff_from_name(data, warinfo, planet, name)
+        if weighted_eff * static['pop%'] == 0:
+            eta = "**STALEMATE**"
         else:
-            effs = [i[1] for i in region_eff if i[1] != 'N/A'] + [non_region_eff]
-        
-        if effs == []:
-            eta = "N/A"
-        else:
-            avg_eff = sum(effs) / len(effs)
-            eta = required / (avg_eff * static['pop%'])
+            eta = required / (weighted_eff * static['pop%'])
  
     
     if campaign == "Already liberated":
@@ -533,7 +520,6 @@ async def get_command(ctx, *, name: str, help="Fetches real-time info about a pl
     
     msg += format_environmental_data(environmentals.split('\n'))
     msg += f"### {campaign.upper()}\n"
-    
     if not flag:
         msg += "-"*20 + '\n'
         msg += f"**{progress}% LIBERATED**\n{etamsg}\n"
@@ -638,7 +624,7 @@ async def effcalc_command(ctx, *, name: str):
     if None in [api, planets, warinfo]:
         return await send_error_msg(ctx)
 
-    effs, planet_eff = calc_region_eff_from_name(api, warinfo, planets, name)
+    effs, planet_eff, _ = calc_region_eff_from_name(api, warinfo, planets, name)
     if planet_eff is None:
         return await ctx.reply("Planet not found.")
     
@@ -657,8 +643,8 @@ async def effcalc_command(ctx, *, name: str):
     return await ctx.reply(msg)
 
 # Gambit calcs
-@bot.command(name="gambit", help="Calculates feasibility of a gambit, given the name of the planet currently being attacked.")
-async def gambitcalc(ctx, *, name: str):
+@bot.command(name="gambit", help="Calculates feasibility of a gambit.")
+async def gambitcalc(ctx, *, name: str = commands.parameter(description="- Name of the invaded planet.")):
     api = await api_data()
     planets = await planet_data()
     warinfo = await warinfo_data()

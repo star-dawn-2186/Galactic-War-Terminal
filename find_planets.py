@@ -407,6 +407,7 @@ def calc_required_hp(api_data, planet_data, warinfo, idx):
                     required += health
                     health = 0
                     break
+        required += health
     else:
         required = health
     return min([required,health_copy])

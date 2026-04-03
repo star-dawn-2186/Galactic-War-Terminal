@@ -3,7 +3,9 @@ import time
 import json
 import aiohttp
 import requests
+from aiohttp import TCPConnector
 from static_data import environmental_info
+
 
 status_link = "https://api.live.prod.thehelldiversgame.com/api/warseason/801/status"
 warinfo_link = "https://api.live.prod.thehelldiversgame.com/api/warseason/801/warinfo"
@@ -17,7 +19,8 @@ _session = None
 async def get_session():
     global _session
     if _session is None or _session.closed:
-        _session = aiohttp.ClientSession()
+        connector = TCPConnector(ssl=False)
+        _session = aiohttp.ClientSession(connector=connector)
 
     return _session
 

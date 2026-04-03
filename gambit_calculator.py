@@ -90,7 +90,7 @@ def calc_gambit(idx, api_data, planet_data, warinfo):
                         "required": target_required},
             "dss": dss}
     if source_horse != 999:
-        result['source']['horse'] = source_horse
-        result['targets']['horse'] = target_horse
+        result['source']['horse'] = round(source_horse, 2)
+        result['targets']['horse'] = round(target_horse, 2)
     
     return result

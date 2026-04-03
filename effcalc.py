@@ -17,9 +17,12 @@ def calc_region_eff_from_name(api_data, warinfo_data, planet_data, name):
     
     result = []
     region_players = 0
+    weighted_avg_eff = 0
+    relative_pop = 0
     for region in regions:
         rID = str(region['p_idx']) + ':' + str(region['r_idx'])
         name = region['name']
+        relative_pop += region['pop'] / 100
         _, _, delta_health, players = get_region_librate_from_idx(rID)
         region_players += players
         regen = region['regen']
@@ -27,6 +30,7 @@ def calc_region_eff_from_name(api_data, warinfo_data, planet_data, name):
         state = type(region['eta']) != str
         if state:
             eff = int((delta_health + regen * UPDATE_INTERVAL) / pop / (UPDATE_INTERVAL / 3600))
+            weighted_avg_eff += region['pop'] / 100 * eff
         else:
             eff = 'N/A' 
         result.append([name, eff])
@@ -42,11 +46,11 @@ def calc_region_eff_from_name(api_data, warinfo_data, planet_data, name):
         non_region_players = planet_players - region_players
         non_region_pop = non_region_players / total_players * 100
         non_region_eff = int((planet_dhealth + planet_regen * UPDATE_INTERVAL) / non_region_pop / (UPDATE_INTERVAL / 3600))
-    
+        weighted_avg_eff += (1 - relative_pop) * non_region_eff
     else:
         non_region_eff = 'N/A'
     
-    return result, non_region_eff
+    return result, non_region_eff, weighted_avg_eff
 
 def calc_planet_eff_from_idx(api_data, warinfo_data, planet_data, idx):
     
@@ -68,4 +72,4 @@ def calc_planet_eff_from_idx(api_data, warinfo_data, planet_data, idx):
     else:
         eff = 'N/A'
     
-    return None, eff
+    return None, eff, eff
