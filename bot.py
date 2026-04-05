@@ -11,7 +11,7 @@ from concurrent.futures import ProcessPoolExecutor
 import ast
 import datetime
 import json
-import numpy as np
+import math
 from tabulate import tabulate
 from utils import *
 from find_planets import * 
@@ -19,7 +19,7 @@ from horse import horse_predict
 from gambit_calculator import calc_gambit
 from ticker import create_stock_ticker_gif, release_memory
 from libcalc import get_librate_from_idx, update_librate
-from effcalc import calc_region_eff_from_name
+from effcalc import calc_region_eff_from_name, diff_to_dmg
 from ocr import img_to_stats, summary_from_stats
 
 
@@ -644,19 +644,46 @@ async def effcalc_command(ctx, *, name: str):
 
 # Gambit calcs
 @bot.command(name="gambit", help="Calculates feasibility of a gambit.")
+@commands.dynamic_cooldown(custom_cooldown, commands.BucketType.user)
 async def gambitcalc(ctx, *, name: str = commands.parameter(description="- Name of the invaded planet.")):
     api = await api_data()
     planets = await planet_data()
     warinfo = await warinfo_data()
 
     if None in [api, planets, warinfo]:
-        return await send_error_msg()
+        return await send_error_msg(ctx)
     
     response = calc_gambit(name, api, planets, warinfo)
     msg = format_gambitcalc(response)
     if msg is None:
         msg = "This is not a defense."
     return await ctx.reply(msg)
+
+@gambitcalc.error
+async def gambitcalc_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.reply(f"\n-# Command on cooldown, try again after {error.retry_after:.2f}s.")
+
+
+@bot.command(name="dmg", help="Fetches a list of damage dealt per difficulty with the current IM.")
+@commands.dynamic_cooldown(custom_cooldown, commands.BucketType.user)
+async def dmgcalc(ctx):
+    im = await fetch_im()
+    if im is None: return await send_error_msg(ctx)
+    results = []
+    for diff in diff_to_dmg:
+        name = diff[0]
+        avg_mission_dmg = round(sum([math.floor(im * dmg) for dmg in diff[1:]]) / (len(diff)-1), 2)
+        non_ocb_dmg = math.floor(im * diff[1]) if len(diff) > 2 else 'N/A'
+        ocb_dmg = math.floor(im * diff[-1])
+        results.append([name, avg_mission_dmg, non_ocb_dmg, ocb_dmg])
+    table = tabulate(results, headers=["Diff", "Avg. Dmg.", "Non-OCB Dmg", "OCB Dmg."])
+    msg = f"### Current Impact Modifier: {im}\n```{table}```"
+    return await ctx.reply(msg)
+@dmgcalc.error
+async def dmgcalc_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.reply(f"\n-# Command on cooldown, try again after {error.retry_after:.2f}s.")
 
 # ====================
 # Administrative Commands

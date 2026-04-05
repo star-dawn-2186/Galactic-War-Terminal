@@ -201,7 +201,12 @@ def format_gambitcalc(result):
     
     return msg
 
-    
+async def fetch_im():
+    api = await api_data()
+    if api is None: return None
+    return api.get('impactMultiplier')
+
+
 class BotConfig():
     def __init__(self):
         try:

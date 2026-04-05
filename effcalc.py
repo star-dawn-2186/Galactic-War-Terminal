@@ -73,3 +73,16 @@ def calc_planet_eff_from_idx(api_data, warinfo_data, planet_data, idx):
         eff = 'N/A'
     
     return None, eff, eff
+
+diff_to_dmg = [
+    ["D1", 136],
+    ["D2", 144],
+    ["D3", 40, 160],
+    ["D4", 44, 176],
+    ["D5", 50, 50, 200],
+    ["D6", 58, 58, 232],
+    ["D7", 67, 67, 268],
+    ["D8", 77, 77, 308],
+    ["D9", 89, 89, 356],
+    ["D10", 102, 102, 408]
+]

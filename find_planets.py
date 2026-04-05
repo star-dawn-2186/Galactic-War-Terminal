@@ -329,7 +329,7 @@ def get_regions_by_name(api_data, warinfo_data, planet_data, name):
         decay = round(regen * 3600 / maxhealth * 100, 2)
         name = region_names[str(region_hash)]
         players = region['players']
-        pop = round(players / planet_players * 100, 2)
+        pop = 0 if planet_players == 0 else round(players / planet_players * 100, 2)
         
         aF = region['availabilityFactor']
         is_available = region['isAvailable']
