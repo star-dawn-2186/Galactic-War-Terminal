@@ -71,7 +71,7 @@ def DSS_voting_data(): # "What a great way to solve this issue, Joe. Well done. 
         'Priority': 'u=0, i',
     }
 
-    response = requests.get('https://redivivus-nixon-uncomplicated.ngrok-free.dev/election/', cookies=cookies, headers=headers)
+    response = requests.get('https://redivivus-nixon-uncomplicated.ngrok-free.dev/election/', cookies=cookies)
     return response.json()
 
 

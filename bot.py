@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 import discord
 import pickle
 import asyncio
@@ -25,8 +26,9 @@ from ocr import img_to_stats, summary_from_stats
 
 
 process_executor = ProcessPoolExecutor(max_workers=1)
+load_dotenv()
 
-TOKEN = pickle.load(open('token.pkl','rb')) #not gonna show my token to ya :)
+TOKEN = os.getenv("TOKEN") #not gonna show my token to ya :)
 acecon_msg_link = 'https://discord.com/channels/1261556132640456764/1427786162272997526/1430116186967904427'
 advisory_link = 'https://discord.com/channels/1261556132640456764/1427786162272997526'
 LEADER_ROLE_ID = 1372466615798726707

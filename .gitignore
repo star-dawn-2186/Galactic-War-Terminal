@@ -7,3 +7,4 @@ image.png
 prev_health.json
 train_horse.py
 learn.py
+.env

@@ -5,3 +5,4 @@ psutil
 tqdm
 matplotlib
 tabulate
+python-dotenv
