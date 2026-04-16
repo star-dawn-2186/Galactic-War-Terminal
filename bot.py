@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 import discord
+import traceback
 import pickle
 import asyncio
 from discord.ext import commands, tasks
@@ -206,12 +207,14 @@ async def alert_loop():
     msg = "!!=== PRIORITY ALERT: ENEMY MOVEMENT ===!!\n"
     for idx in subfactions:
         _, name = name_to_idx(int(idx), planets)
-        for sub in subfactions[idx]:
-            if sub not in prev_subfactions[idx]: # new subfaction
-                msg += f"{sub.upper()} detected on: {name.upper()}\n"
-        for sub in prev_subfactions[idx]:
-            if sub not in subfactions[idx]: # removed subfaction
-                msg += f"{sub.upper()} no longer detected on: {name.upper()}\n"
+        stats, _, _ = get_stats_by_name(api, planets, warinfo, idx)
+        if stats['campaign'] != "Already liberated":
+            for sub in subfactions[idx]:
+                if sub not in prev_subfactions[idx]: # new subfaction
+                    msg += f"{sub.upper()} detected on: {name.upper()}\n"
+            for sub in prev_subfactions[idx]:
+                if sub not in subfactions[idx]: # removed subfaction
+                    msg += f"{sub.upper()} no longer detected on: {name.upper()}\n"
     
     if msg.count('\n') > 1:
         await bot.get_channel(HANGOUT_CHANNEL).send(f"```{msg}```")
@@ -564,6 +567,7 @@ async def get_error(ctx, error):
         await ctx.reply(f"\n-# Command on cooldown, try again after {error.retry_after:.2f}s.")
     else:
         print(error)
+        traceback.print_exc()
 
 # Get Region stats from planet 
 @bot.command(name='get_region')

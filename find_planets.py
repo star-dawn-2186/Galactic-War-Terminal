@@ -361,6 +361,8 @@ def get_regions_by_name(api_data, warinfo_data, planet_data, name):
                              'players': players,
                              'eta': eta,
                              'libbomb': lib_bomb,
+                             'health': health,
+                             'maxhealth': maxhealth,
                              'availabilityFactor': aF})
     return region_dicts, Pname
 
@@ -395,9 +397,9 @@ def calc_required_hp(api_data, planet_data, warinfo, idx):
     if not bypass:
         for region in regions:
             if region['eta'] != "**Liberty Secured**":
-                required += (1-region['progress'] * 0.01) * region['eq_size'] * 1e6
+                required += (region['health'])
                 if dmg_mirroring:
-                    health -= (1-region['progress'] * 0.01) * region['eq_size'] * 1e6
+                    health -= (region['health'])
                     if health < 0:
                         required += health
                         health = 0
@@ -411,3 +413,4 @@ def calc_required_hp(api_data, planet_data, warinfo, idx):
     else:
         required = health
     return min([required,health_copy])
+
