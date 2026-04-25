@@ -22,6 +22,7 @@ async def update_librate(p_filename=p_FILENAME, r_filename = r_FILENAME):
     if None in [status, warinfo]:
         print("api error")
         return
+
     planet_status = status.get('planetStatus')
     region_status = status.get('planetRegions')
     planet_info = warinfo.get('planetInfos')
@@ -116,10 +117,10 @@ async def init_savedhealth(filename=p_FILENAME, mode = 'p'):
     if status is None:
         return
     if mode == 'p':
-        status = status.get('planetStatus')
+        planet_status = status.get('planetStatus')
         planet_events = status.get('planetEvents')
         healthdict = {}
-        for planet in status:
+        for planet in planet_status:
             healthdict[str(planet['index'])] = [planet['health'], 0, 0, 0]
         for event in planet_events:
             if event['eventType'] == 1:
@@ -130,9 +131,9 @@ async def init_savedhealth(filename=p_FILENAME, mode = 'p'):
             json.dump(healthdict, f, indent=4)
             
     elif mode == 'r':
-        status = status.get('planetRegions')
+        region_status = status.get('planetRegions')
         regiondict = {}
-        for region in status:
+        for region in region_status:
             pID = region['planetIndex']
             idx = region['regionIndex']
             health = region['health']

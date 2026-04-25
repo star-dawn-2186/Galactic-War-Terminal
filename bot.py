@@ -102,6 +102,7 @@ async def on_ready():
     alert_loop.start()
     reminder_loop.start()
     leaderboard_loop.start()
+    jb_loop.start()
     
 
 
@@ -124,6 +125,21 @@ async def on_thread_create(thread):
         else:
             return await bot.get_channel(LOUNGE_CHANNEL).send("Notif not sent.")
 
+@tasks.loop(hours=1)
+async def jb_loop():
+    jb_planets = []
+    with open("subfactions.json") as f:
+        subs = json.load(f)
+    with open("prev_health.json") as f:
+        healths = json.load(f)
+        
+    for planet in subs:
+        if "THE JET BRIGADE" in subs[planet]:
+            jb_planets.append(planet)
+    with open("jb.txt",'a') as f:
+        f.writelines(f"=={time.time()}==\n") 
+        f.writelines([f"{planet} {healths[planet][0]}\n" for planet in jb_planets])
+        
 
 
 @tasks.loop(minutes = 1)
@@ -140,15 +156,17 @@ async def alert_loop():
         subfactions[str(idx)] = []
         
         effects, _ = get_effects_by_idx(api, idx)
-        stats, _, _ = get_stats_by_name(api, planets, warinfo, idx)
-        if 'decay' in stats:
-            decays[idx] = stats['decay']
-        
-        for effect in effects:
-            for sub in ['CORPS', 'BRIGADE', 'STRAIN', 'CYBORG', 'Appropriator', 'Mindless Mass', 'DRAGONROACH', 'HIVE LORD']: 
-                if sub.lower() in effect.lower() and effect.lower() != "jet brigade factories":
-                    subfactions[str(idx)].append(effect)
-
+        try:
+            stats, _, _ = get_stats_by_name(api, planets, warinfo, idx)
+            if 'decay' in stats:
+                decays[idx] = stats['decay']
+            
+            for effect in effects:
+                for sub in ['CORPS', 'JET', 'STRAIN', 'CYBORG', 'Appropriator', 'Mindless Mass', 'DRAGONROACH', 'HIVE LORD']: 
+                    if sub.lower() in effect.lower() and effect.lower() != "jet brigade factories":
+                        subfactions[str(idx)].append(effect)
+        except:
+            pass
         
     init = False
     if not os.path.isfile("defenses.txt"):
