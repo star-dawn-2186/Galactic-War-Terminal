@@ -97,9 +97,9 @@ def acecon_format(num):
 async def on_ready():
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
     print('------')
-
-    ticker_loop.start()
+    
     alert_loop.start()
+    ticker_loop.start()
     reminder_loop.start()
     leaderboard_loop.start()
     jb_loop.start()
@@ -246,7 +246,7 @@ async def alert_loop():
             idx = int(rID.split(':')[0])
             idx, name = name_to_idx(idx, planets)
             r_idx = int(rID.split(':')[1])
-            regions = get_regions_by_name(api, warinfo, planets, name)
+            regions, _ = get_regions_by_name(api, warinfo, planets, name)
             for region in regions:
                 if region['r_idx'] == r_idx:
                     r_name = region['name']
@@ -313,7 +313,7 @@ async def ticker_loop():
     success = False
     while not success:
         try:
-            await update_librate()
+            _ = await update_librate(mode='p')
             api = await api_data()
             planets = await planet_data()
             warinfo = await warinfo_data()
