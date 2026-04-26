@@ -147,6 +147,7 @@ async def alert_loop():
     api = await api_data()
     planets = await planet_data()
     warinfo = await warinfo_data()
+    new_regions = await update_librate(mode='r')
     if None in [api, planets, warinfo]:
         return
     defenses = api.get('planetEvents')
@@ -238,6 +239,20 @@ async def alert_loop():
         await bot.get_channel(HANGOUT_CHANNEL).send(f"```{msg}```")
     with open("subfactions.json", 'w') as f:
         json.dump(subfactions, f)
+    
+    if new_regions != []:
+        msg = "!!== PRIORITY ALERT: NEW REGION DETECTED ==!!\n"
+        for rID in new_regions:
+            idx = int(rID.split(':')[0])
+            idx, name = name_to_idx(idx, planets)
+            r_idx = int(rID.split(':')[1])
+            regions = get_regions_by_name(api, warinfo, planets, name)
+            for region in regions:
+                if region['r_idx'] == r_idx:
+                    r_name = region['name']
+                    msg += f"{r_name.upper()} on planet {name.upper()}\n"
+                    break
+        await bot.get_channel(HANGOUT_CHANNEL).send(f"```{msg}```")
     
     with open("decays.json", 'r') as f:
         prev_decays = json.load(f)

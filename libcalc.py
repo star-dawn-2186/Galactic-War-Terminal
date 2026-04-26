@@ -15,7 +15,7 @@ r_FILENAME = "region_health.json"
 
 # omg thank you past joe i had no fucking clue what you wrote
 
-async def update_librate(p_filename=p_FILENAME, r_filename = r_FILENAME):
+async def update_librate(p_filename=p_FILENAME, r_filename = r_FILENAME, mode='both'):
     status = await api_data()
     warinfo = await warinfo_data()
     
@@ -42,75 +42,83 @@ async def update_librate(p_filename=p_FILENAME, r_filename = r_FILENAME):
     with open(p_filename,'r') as f:
         healthdict = json.load(f)
     
-    events = []
-    for event in planet_events:
-        if 'planetIndex' in event:
-            idx = event['planetIndex']
-            events.append(int(idx))
-            players = planet_status[idx]['players']
-            health = int(event['health'])
-            prev_health = healthdict[str(idx)][0]
-            maxhealth = int(event['maxHealth'])
-            if prev_health % 10000 == 0: # previously liberated, new defense
-                librate = None
+    if mode in ['both', 'p']:
+        events = []
+        for event in planet_events:
+            if 'planetIndex' in event:
+                idx = event['planetIndex']
+                events.append(int(idx))
+                players = planet_status[idx]['players']
+                health = int(event['health'])
+                prev_health = healthdict[str(idx)][0]
+                maxhealth = int(event['maxHealth'])
+                if prev_health % 10000 == 0: # previously liberated, new defense
+                    librate = None
+                    delta_health = 0
+                else:
+                    delta_health = prev_health - health
+                    healthp = delta_health / maxhealth * 100
+                    librate = round(healthp / (UPDATE_INTERVAL / 3600),2)
+
+                    
+                healthdict[str(idx)] = [health, librate, delta_health, players]
+                
+        for planet in planet_status:
+            if int(planet['index']) in events:
+                continue
+            
+            players = planet['players']
+            health = int(planet['health'])
+            prev_health = healthdict[str(planet['index'])][0]
+            delta_health = prev_health - health
+            maxhealth = int(planet_info[planet['index']]['maxHealth'])
+            healthp = delta_health / maxhealth * 100
+            librate = round(healthp / (UPDATE_INTERVAL / 3600),2)
+            healthdict[str(planet['index'])] = [health, librate, delta_health, players]
+            
+        with open(p_filename,'w') as f:
+            json.dump(healthdict, f, indent=4)
+            
+    new_regions = []
+    if mode in ['both', 'r']:
+        
+        with open(r_filename, 'r') as f:
+            regiondict = json.load(f)
+        
+        for region in region_status:
+            # regions fluctuate much more frequently than planets, and not all regions are shown in status
+            # so dynamically update regions? until all existing regions are in there
+            # shouldnt be too much for file size
+            pID = region['planetIndex']
+            idx = region['regionIndex']
+            health = region['health']
+            players = region['players']
+            for r in region_info:
+                if r['planetIndex'] == pID and r['regionIndex'] == idx:
+                    maxhealth = r['maxHealth']
+                    break
+                
+            rID = f"{pID}:{idx}"
+            if rID not in regiondict:
+                new_regions.append(rID)
+                regiondict[rID] = [health, 0, 0, 0]
+            prev_health = regiondict[rID][0]
+            delta_health = prev_health - health
+            healthp = delta_health / maxhealth * 100
+            if delta_health > 0.9 * maxhealth:
+                librate = 0
                 delta_health = 0
             else:
-                delta_health = prev_health - health
-                healthp = delta_health / maxhealth * 100
-                librate = round(healthp / (UPDATE_INTERVAL / 3600),2)
-
-                
-            healthdict[str(idx)] = [health, librate, delta_health, players]
-            
-    for planet in planet_status:
-        if int(planet['index']) in events:
-            continue
+                librate = round(healthp / (60 / 3600),2)
+            regiondict[rID] = [health, librate, delta_health, players]
         
-        players = planet['players']
-        health = int(planet['health'])
-        prev_health = healthdict[str(planet['index'])][0]
-        delta_health = prev_health - health
-        maxhealth = int(planet_info[planet['index']]['maxHealth'])
-        healthp = delta_health / maxhealth * 100
-        librate = round(healthp / (UPDATE_INTERVAL / 3600),2)
-        healthdict[str(planet['index'])] = [health, librate, delta_health, players]
-            
-    with open(r_filename, 'r') as f:
-        regiondict = json.load(f)
     
-    for region in region_status:
-        # regions fluctuate much more frequently than planets, and not all regions are shown in status
-        # so dynamically update regions? until all existing regions are in there
-        # shouldnt be too much for file size
-        pID = region['planetIndex']
-        idx = region['regionIndex']
-        health = region['health']
-        players = region['players']
-        for r in region_info:
-            if r['planetIndex'] == pID and r['regionIndex'] == idx:
-                maxhealth = r['maxHealth']
-                break
-            
-        rID = f"{pID}:{idx}"
-        if rID not in regiondict:
-            regiondict[rID] = [health, 0, 0, 0]
-        prev_health = regiondict[rID][0]
-        delta_health = prev_health - health
-        healthp = delta_health / maxhealth * 100
-        if delta_health > 0.9 * maxhealth:
-            librate = 0
-            delta_health = 0
-        else:
-            librate = round(healthp / (UPDATE_INTERVAL / 3600),2)
-        regiondict[rID] = [health, librate, delta_health, players]
-        
-    with open(p_filename,'w') as f:
-        json.dump(healthdict, f, indent=4)
-    with open(r_filename, 'w') as f:
-        json.dump(regiondict, f, indent=4)
+        with open(r_filename, 'w') as f:
+            json.dump(regiondict, f, indent=4)
         
     now = datetime.now()
-    print(f"{now}: updated librates")
+    print(f"{now}: updated librates | mode: {mode}")
+    return new_regions
 
 async def init_savedhealth(filename=p_FILENAME, mode = 'p'):
     status = await api_data()
