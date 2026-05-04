@@ -110,7 +110,42 @@ def name_to_idx(name, planet_data):
         if idx == -1:
             return None, None
     return int(idx), name
+
+
+def calc_required_hp(stats, api_data, planet_data, warinfo, idx):
+    health = stats['health']
+    dmg_mirroring = stats['campaign'] == 'Defense'
+    required = 0
+    health_copy = health
+    bypass = False
+    if stats['has regions']: 
+        regions, _ = get_regions_by_name(api_data, warinfo, planet_data, idx)
+        regions = sorted(regions, key=lambda x: x['availabilityFactor'], reverse=True)
+        if all(region['eta'] == "**Liberty Secured**" for region in regions):
+            bypass = True
+    else:
+        bypass = True
         
+    if not bypass:
+        for region in regions:
+            if region['eta'] != "**Liberty Secured**":
+                required += (region['health'])
+                if dmg_mirroring:
+                    health -= (region['health'])
+                    if health < 0:
+                        required += health
+                        health = 0
+                        break
+                health -= region['libbomb'] * stats['maxhealth']
+                if health < 0:
+                    required += health
+                    health = 0
+                    break
+        required += health
+    else:
+        required = health
+    return min([required,health_copy])
+
 def get_stats_by_name(api_data, planet_data, warinfo_data, name):
     
     idx, name = name_to_idx(name, planet_data)
@@ -221,26 +256,25 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
             eta = "**STALEMATE**" 
     else:
         eta = None
-        
     
     if flag:
-        return {"id": idx, 
-            "faction": faction, 
-            "campaign": campaign_type, 
-            "biome": biome, 
-            "environmentals": environmentals, 
-            "dist": dist_to_se, 
-            "has regions": city,
-            "pop%": pop,
-            "level": level,
-            "duration": duration,
-            "ddl": ddl,
-            "progress": progress,
-            "eta": eta,
-            "health": health,
-            "maxhealth": maxhealth}, UNnames, name
+        stats = {"id": idx, 
+                "faction": faction, 
+                "campaign": campaign_type, 
+                "biome": biome, 
+                "environmentals": environmentals, 
+                "dist": dist_to_se, 
+                "has regions": city,
+                "pop%": pop,
+                "level": level,
+                "duration": duration,
+                "ddl": ddl,
+                "progress": progress,
+                "eta": eta,
+                "health": health,
+                "maxhealth": maxhealth}
     else:
-        return {"id": idx, 
+        stats = {"id": idx, 
                 "faction": faction, 
                 "campaign": campaign_type, 
                 "biome": biome, 
@@ -253,7 +287,12 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name):
                 "progress": progress,
                 "eta": eta,
                 "health": health,
-                "maxhealth": maxhealth}, UNnames, name
+                "maxhealth": maxhealth}
+        
+    required_hp = calc_required_hp(stats, api_data, planet_data, warinfo_data, idx)
+    stats['required'] = required_hp
+    
+    return stats, UNnames, name
         
 
 def get_effects_by_idx(api_data, idx):
@@ -280,7 +319,8 @@ def get_effects_by_idx(api_data, idx):
         dss = api_data.get('spaceStations')[0]
         if str(dss['planetIndex']) == str(idx):
             for effect in dss['activeEffectIds']:
-                effect_lst.append(effect_names[str(effect)])
+                if str(effect) not in ['1384', '1385']:
+                    effect_lst.append(effect_names[str(effect)])
     except IndexError:
         pass
     
@@ -379,38 +419,4 @@ def get_defense_rating(level, duration):
         
     return rating
 
-def calc_required_hp(api_data, planet_data, warinfo, idx):
-    stats, _, _ = get_stats_by_name(api_data, planet_data, warinfo, idx)
-    health = stats['health']
-    dmg_mirroring = stats['campaign'] == 'Defense'
-    required = 0
-    health_copy = health
-    bypass = False
-    if stats['has regions']: 
-        regions, _ = get_regions_by_name(api_data, warinfo, planet_data, idx)
-        regions = sorted(regions, key=lambda x: x['availabilityFactor'], reverse=True)
-        if all(region['eta'] == "**Liberty Secured**" for region in regions):
-            bypass = True
-    else:
-        bypass = True
-        
-    if not bypass:
-        for region in regions:
-            if region['eta'] != "**Liberty Secured**":
-                required += (region['health'])
-                if dmg_mirroring:
-                    health -= (region['health'])
-                    if health < 0:
-                        required += health
-                        health = 0
-                        break
-                health -= region['libbomb'] * stats['maxhealth']
-                if health < 0:
-                    required += health
-                    health = 0
-                    break
-        required += health
-    else:
-        required = health
-    return min([required,health_copy])
 

@@ -97,9 +97,9 @@ def acecon_format(num):
 async def on_ready():
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
     print('------')
-    
-    alert_loop.start()
     ticker_loop.start()
+    alert_loop.start()
+    
     reminder_loop.start()
     leaderboard_loop.start()
     jb_loop.start()
@@ -125,13 +125,17 @@ async def on_thread_create(thread):
         else:
             return await bot.get_channel(LOUNGE_CHANNEL).send("Notif not sent.")
 
+# JB tracker (temporary)
 @tasks.loop(hours=1)
 async def jb_loop():
     jb_planets = []
-    with open("subfactions.json") as f:
-        subs = json.load(f)
-    with open("prev_health.json") as f:
-        healths = json.load(f)
+    try:
+        with open("subfactions.json") as f:
+            subs = json.load(f)
+        with open("prev_health.json") as f:
+            healths = json.load(f)
+    except:
+        return
         
     for planet in subs:
         if "THE JET BRIGADE" in subs[planet]:
@@ -188,6 +192,7 @@ async def alert_loop():
     
     with open("defenses.txt", 'r') as f:
         prev_defenses = f.read().split('\n')
+
     for defense in defenses:
         if str(defense['planetIndex']) not in prev_defenses: # New defense
             
@@ -336,7 +341,7 @@ async def ticker_loop():
         librate = get_librate_from_idx(idx)[1]
         eta = stats['eta']
         if eta is None: 
-            required = calc_required_hp(api, planets, warinfo, idx) 
+            required = stats['required'] 
             _, _, weighted_eff = calc_region_eff_from_name(api, warinfo, planets, name) 
             
             if weighted_eff * stats['pop%'] == 0: 
@@ -525,7 +530,7 @@ async def get_command(ctx, *, name: str = commands.parameter(description="- Name
     flag = 'level' in static
     usealg = eta is None
     if usealg:
-        required = calc_required_hp(data, planet, warinfo, idx)
+        required = static['required']
         _, _, weighted_eff = calc_region_eff_from_name(data, warinfo, planet, name)
         if weighted_eff * static['pop%'] == 0:
             eta = "**STALEMATE**"
