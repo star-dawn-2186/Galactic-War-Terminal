@@ -25,7 +25,6 @@ from effcalc import calc_region_eff_from_name, diff_to_dmg
 from ocr import img_to_stats, summary_from_stats
 
 
-
 process_executor = ProcessPoolExecutor(max_workers=1)
 load_dotenv()
 
@@ -196,7 +195,7 @@ async def alert_loop():
     for defense in defenses:
         if str(defense['planetIndex']) not in prev_defenses: # New defense
             
-            idx, name = name_to_idx(defense['planetIndex'], planets)
+            idx, name = name_to_idx(defense['planetIndex'])
             stats, _, _ = get_stats_by_name(api, planets, warinfo, name)
             faction = stats['faction']
             effects = get_effects_by_idx(api, idx)[0]
@@ -230,7 +229,7 @@ async def alert_loop():
         
     msg = "!!=== PRIORITY ALERT: ENEMY MOVEMENT ===!!\n"
     for idx in subfactions:
-        _, name = name_to_idx(int(idx), planets)
+        _, name = name_to_idx(int(idx))
         stats, _, _ = get_stats_by_name(api, planets, warinfo, idx)
         if stats['campaign'] != "Already liberated":
             for sub in subfactions[idx]:
@@ -249,7 +248,7 @@ async def alert_loop():
         msg = "!!== PRIORITY ALERT: NEW REGION DETECTED ==!!\n"
         for rID in new_regions:
             idx = int(rID.split(':')[0])
-            idx, name = name_to_idx(idx, planets)
+            idx, name = name_to_idx(idx)
             r_idx = int(rID.split(':')[1])
             regions, _ = get_regions_by_name(api, warinfo, planets, name)
             for region in regions:
@@ -269,7 +268,7 @@ async def alert_loop():
                 change = "DECREASED"
             elif prev_decays[str(idx)] < decays[idx]:
                 change = "INCREASED"
-            _, name = name_to_idx(int(idx), planets) 
+            _, name = name_to_idx(int(idx)) 
             # at this point, i have realized that me calling those functions that return way more data
             # than is needed is extremely inefficient and will probably give all my past coding teachers an aneurysm
             # however, i dare not fix what aint broken, for it is, and pun fully intended, the code we live by
@@ -672,7 +671,7 @@ async def effcalc_command(ctx, *, name: str):
     if planet_eff is None:
         return await ctx.reply("Planet not found.")
     
-    _, name = name_to_idx(name, planets)
+    _, name = name_to_idx(name)
     msg = f"### Eff calc for planet: {name.upper()}\n"
     
     if effs is None:
@@ -1043,6 +1042,21 @@ intents.guilds = True
 
 if __name__ == '__main__':
     bot.run(TOKEN)
+    
+   
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
 # there once were a couple of users

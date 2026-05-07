@@ -94,20 +94,24 @@ def find_planet_or_region_by_name(api_data, warinfo_data, name, planet_names=pla
         print(f"No planet or region found matching \"{name}\".")
         return None
 
-def name_to_idx(name, planet_data):
+def name_to_idx(name):
     idx = -1
     try:
         idx = int(name)
+        if idx in [263, 264, 265]:
+            return idx, None
         try:
-            name = planet_data.get(str(idx))['name']
+            name = planet_names[str(idx)]
         except:
+            print(name, idx)
             return None, None
     except:
-        for pID in planet_data:
-            if planet_data.get(pID)['name'].lower() == name.lower():
+        for pID in planet_names:
+            if planet_names[pID].lower() == name.lower():
                 idx = pID
                 break
         if idx == -1:
+            print(name, idx)
             return None, None
     return int(idx), name
 
@@ -148,8 +152,9 @@ def calc_required_hp(stats, api_data, planet_data, warinfo, idx):
 
 def get_stats_by_name(api_data, planet_data, warinfo_data, name):
     
-    idx, name = name_to_idx(name, planet_data)
+    idx, name = name_to_idx(name)
     if idx is None:
+        print("name or idx not found")
         return None
     
     total_players = 0    
@@ -331,7 +336,7 @@ def get_effects_by_idx(api_data, idx):
     return effect_lst, effect_ids
 
 def get_regions_by_name(api_data, warinfo_data, planet_data, name):
-    idx, Pname = name_to_idx(name, planet_data)
+    idx, Pname = name_to_idx(name)
     if idx is None:
         return None
     warinfo = warinfo_data.get('planetInfos')

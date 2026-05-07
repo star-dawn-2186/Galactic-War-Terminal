@@ -4,7 +4,7 @@ from libcalc import *
 
 # (delta_health + regen * time) / pop% / (time / 1h)
 def calc_region_eff_from_name(api_data, warinfo_data, planet_data, name):
-    idx, name = name_to_idx(name, planet_data)
+    idx, name = name_to_idx(name)
     if None in [idx, name]:
         return None, None
     

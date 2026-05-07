@@ -6,7 +6,7 @@ from horse import horse_predict
 
 
 def calc_gambit(idx, api_data, planet_data, warinfo):
-    idx, name = name_to_idx(idx, planet_data)
+    idx, name = name_to_idx(idx)
     target_stats, _, _ = get_stats_by_name(api_data, planet_data, warinfo, idx)
     
     
@@ -33,7 +33,7 @@ def calc_gambit(idx, api_data, planet_data, warinfo):
         if attack['source'] == source_idx and attack['target'] != idx:
             targets.append(attack['target'])
     
-    target_names = [name_to_idx(target_idx, planet_data)[1] for target_idx in targets]
+    target_names = [name_to_idx(target_idx)[1] for target_idx in targets]
     
     
     source_stats, _, source_name = get_stats_by_name(api_data, planet_data, warinfo, source_idx)
