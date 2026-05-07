@@ -720,7 +720,7 @@ async def dmgcalc(ctx):
         non_ocb_dmg = math.floor(im * diff[1]) if len(diff) > 2 else 'N/A'
         ocb_dmg = math.floor(im * diff[-1])
         results.append([name, avg_mission_dmg, non_ocb_dmg, ocb_dmg])
-    table = tabulate(results, headers=["Diff", "Avg. Dmg.", "Non-OCB Dmg", "OCB Dmg."])
+    table = tabulate(results, headers=["", "Avg", "Non-OCB", "OCB"], stralign="left")
     msg = f"### Current Impact Modifier: {im}\n```{table}```"
     return await ctx.reply(msg)
 @dmgcalc.error
