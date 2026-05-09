@@ -17,7 +17,7 @@ import math
 from tabulate import tabulate
 from utils import *
 from find_planets import * 
-from parse_assignment import parse_mo
+from parse_assignment import parse_mo, update_mo_tracker
 from horse import horse_predict
 from gambit_calculator import calc_gambit
 from ticker import create_stock_ticker_gif, release_memory
@@ -102,7 +102,7 @@ async def on_ready():
     
     reminder_loop.start()
     leaderboard_loop.start()
-    jb_loop.start()
+    mo_loop.start()
     
 
 
@@ -125,25 +125,9 @@ async def on_thread_create(thread):
         else:
             return await bot.get_channel(LOUNGE_CHANNEL).send("Notif not sent.")
 
-# JB tracker (temporary)
-@tasks.loop(hours=1)
-async def jb_loop():
-    jb_planets = []
-    try:
-        with open("subfactions.json") as f:
-            subs = json.load(f)
-        with open("prev_health.json") as f:
-            healths = json.load(f)
-    except:
-        return
-        
-    for planet in subs:
-        if "THE JET BRIGADE" in subs[planet]:
-            jb_planets.append(planet)
-    with open("jb.txt",'a') as f:
-        f.writelines(f"=={time.time()}==\n") 
-        f.writelines([f"{planet} {healths[planet][0]}\n" for planet in jb_planets])
-        
+@tasks.loop(minutes=10)
+async def mo_loop():
+    update_mo_tracker()
 
 
 @tasks.loop(minutes = 1)
@@ -496,7 +480,15 @@ async def dss_voting_error(ctx, error):
 async def progress_command(ctx):
     mo_data = MO_data()
     orders = parse_mo(mo_data)
+    if os.path.isfile('mo_tracker.json'):
+        with open('mo_tracker.json', 'r') as f:
+            deltas = json.load(f)
     for order in orders:
+        if os.path.isfile('mo_tracker.json'):
+            for task in order['tasks']:
+                delta = deltas[orders.index(order)][order['tasks'].index(task)]['delta']
+                goal = task['goal']
+                task['rate'] = round(delta / goal * 600, 2)
         await ctx.reply(format_mo_progress(order))
 
 # Get Planet stats (Thanks Beef!)

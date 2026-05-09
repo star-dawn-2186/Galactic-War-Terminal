@@ -219,7 +219,10 @@ def format_mo_progress(order):
         task_txt = []
         for key in task:
             task_txt.append([key, str(task[key])])
-        details += f"```{tabulate(task_txt, colalign=('left',))}```\n**{completion}% Complete**\n===============\n"
+        if 'rate' in task:
+            details += f"```{tabulate(task_txt, colalign=('left',))}```\n**{completion}% Complete**\n**{task['rate']}%/hr**\n===============\n"
+        else:
+            details += f"```{tabulate(task_txt, colalign=('left',))}```\n**{completion}% Complete**\n===============\n"
     return f"## {title}\n-# {desc}\n**Expires: {ddl}**\n{details}"
 class BotConfig():
     def __init__(self):

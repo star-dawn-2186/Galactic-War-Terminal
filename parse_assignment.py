@@ -1,5 +1,6 @@
 import time
 import json
+import os
 from utils import MO_data
 from find_planets import name_to_idx
 with open("json_data/assignments/tasks/task/type.json") as f:
@@ -54,6 +55,47 @@ def parse_mo(mo_data):
                        'tasks': task_list})
     return orders
 
+def init_mo_tracker():
+    mo_data = MO_data()
+    orders = parse_mo(mo_data)
+    progresses = []
+    for order in orders:
+        task_progress = [{'progress': task['progress'], 'goal': task['goal'], 'delta': 0} for task in order['tasks']]
+        progresses.append(task_progress)
+    with open('mo_tracker.json', 'w') as f:
+        json.dump(progresses, f)
+
+def update_mo_tracker():
+    mo_data = MO_data()
+    if len(mo_data) == 0:
+        if not os.path.isfile('mo_tracker.json'):
+            return
+        os.rename('mo_tracker.json', f'mo_{time.time()}.json')
+        return
+    if not os.path.isfile('mo_tracker.json'):
+        init_mo_tracker()
+        return
+    with open('mo_tracker.json', 'r') as f:
+        prev_progress = json.load(f)
+        
+    orders = parse_mo(mo_data)
+    progresses = []
+    for order in orders:
+        task_progress = [{'progress': task['progress'], 'goal': task['goal'], 'delta': 0} for task in order['tasks']]
+        progresses.append(task_progress)
+        
+    for i in range(len(orders)):
+        if i >= len(prev_progress):
+            break
+        for j in range(len(orders[i]['tasks'])):
+            delta = orders[i]['tasks'][j]['progress'] - prev_progress[i][j]['progress']
+            progresses[i][j]['delta'] = delta
+    with open('mo_tracker.json', 'w') as f:
+        json.dump(progresses, f)
+            
+            
+        
+        
 def main():
     mo_data = MO_data()
     print(json.dumps(parse_mo(mo_data), indent=4))
