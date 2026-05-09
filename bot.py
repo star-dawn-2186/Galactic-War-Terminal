@@ -17,6 +17,7 @@ import math
 from tabulate import tabulate
 from utils import *
 from find_planets import * 
+from parse_assignment import parse_mo
 from horse import horse_predict
 from gambit_calculator import calc_gambit
 from ticker import create_stock_ticker_gif, release_memory
@@ -287,7 +288,7 @@ async def alert_loop():
 async def reminder_loop():
     with open("reminder_set.pkl",'rb') as f:
         reminder_set = pickle.load(f)
-    mo_data = await MO_data()
+    mo_data = MO_data()
     if mo_data is None:
         return await send_error_msg()
     try:
@@ -489,6 +490,14 @@ async def dss_voting_error(ctx, error):
         await ctx.reply(f"Look up.\n-# Command on cooldown, try again after {error.retry_after:.2f}s.")
     else:
         print(error)
+    
+@bot.command(name='progress')
+@commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
+async def progress_command(ctx):
+    mo_data = MO_data()
+    orders = parse_mo(mo_data)
+    for order in orders:
+        await ctx.reply(format_mo_progress(order))
 
 # Get Planet stats (Thanks Beef!)
 @bot.command(name="get", help="Fetches real-time info about a planet.")
@@ -640,9 +649,9 @@ async def gettop_command(ctx):
         stats, _, name = get_stats_by_name(api, planets, warinfo, idx)
         effects = get_effects_by_idx(api, idx)
         score = round(horse_predict(stats, effects) * 100, 1)
-        leaderboard.append([name.upper(), stats['progress'], stats['pop%'], score])
+        leaderboard.append([name.upper(), stats['progress'], stats['pop%']])
     leaderboard = sorted(leaderboard, key = lambda x: x[2], reverse=True)
-    leaderboard.insert(0,['Planet', 'Progress', 'pop%', 'H.O.R.S.E.'])
+    leaderboard.insert(0,['Planet', 'Progress', 'pop%'])
     if is_authorized(ctx):
         await ctx.reply(f"## Top Ten Deployed Planets: \n```{tabulate(leaderboard[:11])}```")
     else:
@@ -862,7 +871,7 @@ async def sitrep_error(ctx, error):
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
 async def ddl(ctx):
     api = await api_data()
-    mo_data = await MO_data()
+    mo_data = MO_data()
     if None in [api, mo_data]:
         return await send_error_msg(ctx)
     

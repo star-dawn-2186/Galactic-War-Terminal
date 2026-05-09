@@ -11,7 +11,7 @@ status_link = "https://api.live.prod.thehelldiversgame.com/api/warseason/801/sta
 warinfo_link = "https://api.live.prod.thehelldiversgame.com/api/warseason/801/warinfo"
 planet_link = "https://helldiverstrainingmanual.com/api/v1/planets"
 campaign_link = "https://helldiverstrainingmanual.com/api/v1/war/campaign"
-MO_link = "https://helldiverstrainingmanual.com/api/v1/war/major-orders"
+MO_link = "https://api.live.prod.thehelldiversgame.com/api/v2/Assignment/War/801"
 dss_vote_link = 'https://redivivus-nixon-uncomplicated.ngrok-free.dev/election/'
 
 _session = None
@@ -46,8 +46,10 @@ async def planet_data():
     return await fetch_json(planet_link)
 async def campaign_data():
     return await fetch_json(campaign_link)
-async def MO_data():
-    return await fetch_json(MO_link)
+def MO_data():
+    headers = {'Accept-Language': 'en-US,en;q=0.9'}
+    response = requests.get(MO_link, headers=headers)
+    return response.json()
 def DSS_voting_data(): # "What a great way to solve this issue, Joe. Well done. :3" - THD
     
     cookies = {
@@ -206,7 +208,19 @@ async def fetch_im():
     if api is None: return None
     return api.get('impactMultiplier')
 
-
+def format_mo_progress(order):
+    title = order['title']
+    desc = order['desc']
+    ddl = order['ddl']
+    ddl = f"<t:{ddl}:R>"
+    details = ''
+    for task in order['tasks']:
+        completion = round(task['progress'] / task['goal'] * 100, 2)
+        task_txt = []
+        for key in task:
+            task_txt.append([key, str(task[key])])
+        details += f"```{tabulate(task_txt, colalign=('left',))}```\n**{completion}% Complete**\n===============\n"
+    return f"## {title}\n-# {desc}\n**Expires: {ddl}**\n{details}"
 class BotConfig():
     def __init__(self):
         try:
