@@ -99,7 +99,7 @@ async def on_ready():
     print('------')
     ticker_loop.start()
     alert_loop.start()
-    
+    mo_archive_loop.start()
     reminder_loop.start()
     leaderboard_loop.start()
     mo_loop.start()
@@ -129,6 +129,14 @@ async def on_thread_create(thread):
 async def mo_loop():
     update_mo_tracker()
 
+@tasks.loop(minutes = 30)
+async def mo_archive_loop():
+    if not os.path.isfile('mo_tracker.json'):
+        return
+    with open('mo_tracker.json', 'r') as f:
+        data = f.read()
+    with open('mo_archive.txt', 'a') as f:
+        f.write(data+'\n')
 
 @tasks.loop(minutes = 1)
 async def alert_loop():
