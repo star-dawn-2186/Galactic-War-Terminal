@@ -136,7 +136,7 @@ async def mo_archive_loop():
     with open('mo_tracker.json', 'r') as f:
         data = f.read()
     with open('mo_archive.txt', 'a') as f:
-        f.write(data+'\n')
+        f.write(f"{datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')} {data}\n")
 
 @tasks.loop(minutes = 1)
 async def alert_loop():
