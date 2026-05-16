@@ -44,7 +44,10 @@ def parse_mo(mo_data):
                         if task_dict['location_type'] == 'Planet':
                             _, value = name_to_idx(value)
                     case 'item_id':
-                        value = ITEM_NAMES[str(value)]['name']
+                        try:
+                            value = ITEM_NAMES[str(value)]['name']
+                        except:
+                            value = f'item {value}'
                         
                 task_dict[valuetype] = value
             task_list.append(task_dict)

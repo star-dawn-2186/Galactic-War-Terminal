@@ -7,4 +7,11 @@ image.png
 prev_health.json
 train_horse.py
 learn.py
+lib/*
+gw_map.py
+graph.html
 .env
+original_icons/*
+templates/*
+*.JPG
+kills.txt

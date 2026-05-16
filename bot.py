@@ -20,10 +20,11 @@ from find_planets import *
 from parse_assignment import parse_mo, update_mo_tracker
 from horse import horse_predict
 from gambit_calculator import calc_gambit
-from ticker import create_stock_ticker_gif, release_memory
+from ticker import create_stock_ticker_gif
 from libcalc import get_librate_from_idx, update_librate
 from effcalc import calc_region_eff_from_name, diff_to_dmg
 from ocr import img_to_stats, summary_from_stats
+from icon_detect import detect_helldiver_icon
 
 
 process_executor = ProcessPoolExecutor(max_workers=1)
@@ -136,7 +137,7 @@ async def mo_archive_loop():
     with open('mo_tracker.json', 'r') as f:
         data = f.read()
     with open('mo_archive.txt', 'a') as f:
-        f.write(f"{datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')} {data}\n")
+        f.write(f"{datetime.date.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')} {data}\n")
 
 @tasks.loop(minutes = 1)
 async def alert_loop():
@@ -949,7 +950,7 @@ async def send_msg(ctx):
 # Event Commands
 # ====================
 
-@tasks.loop(hours=1)
+@tasks.loop(minutes=30)
 async def leaderboard_loop():
     if not os.path.isfile('event.json'):
         return
@@ -967,25 +968,55 @@ async def leaderboard_loop():
 
     killcounts = sorted(killcounts, key=lambda x: x[1], reverse=True)
     table = tabulate(killcounts[:5], headers=["Name", "Total Kills", "Average Kills"])
+    if os.path.isfile('kills.txt'):
+        with open('kills.txt', 'r') as f:
+            total_kills = int(f.read())
+    
     
     try:
-        channel = bot.get_channel(1437744263763857553)
+        channel = bot.get_channel(1504165314806677506)
         latest = [msg async for msg in channel.history(limit=1)]
     except AttributeError:
         print("Channel history cannot be accessed")
         return
-    if len(latest) != 0 and latest[0].author.id == bot.user.id and "LIVE EVENT LEADERBOARD" in latest[0].content:
+    if len(latest) != 0 and latest[0].author.id == bot.user.id and "MO4 Progress" in latest[0].content:
         try:
             await latest[0].delete()
         except Exception:
             pass
+    state = 'ongoing'
+    if total_kills < 28000 and time.time() >= 1779113917:
+        state = 'failure'
+    elif total_kills < 30000 and time.time() >= 1779113917:
+        state = 'partial_failure'
+    elif total_kills >= 30000:
+        state = 'success'
 
-    await channel.send(f"### LIVE EVENT LEADERBOARD\n```{table}```")
+    
+    match state:
+        case 'ongoing':
+            await channel.send(f"## MO4 Progress\n**Kills: {total_kills}**\n```{table}```")
+        case 'failure':
+            await channel.send(f"## MO4: Failure\n***Kills: {total_kills}**\n```{table}```")
+            os.rename('event.json','m04_03_failure.json')
+        case 'partial_failure':
+            await channel.send(f"## MO4: Partial Failure\n**Kills: {total_kills}**\n```{table}```")
+            os.rename('event.json','m04_03_partial_failure.json')
+        case 'success':
+            await channel.send(f"## MO4: Success\n**Kills: {total_kills}**\n```{table}```")
+            os.rename('event.json','m04_03_success.json')
+
+    # await channel.send(f"## Commando Order Progress\n**Total Kills: {total}**\n-# Kills Per Diver: {avg}\n```{table}```")
 
 @bot.command(name='event_start')
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
-async def event_start(ctx):
+async def event_start(ctx, to:str):
+    
     init_json = {}
+    if to == 'to':
+        with open('event_to.json','w') as f:
+            json.dump(init_json, f)
+        return await ctx.reply("TO Event initiated.")
     with open('event.json','w') as f:
         json.dump(init_json, f)
     return await ctx.reply("Event initiated.")
@@ -994,17 +1025,55 @@ async def event_start(ctx):
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
 async def event_end(ctx):
     archive = f"archived_event_{datetime.datetime.now()}.json"
-    os.rename("event.json", archive)
+    try:
+        os.rename("event.json", archive)
+    except:
+        os.rename("event_to.json", archive)
     return await ctx.reply("Event ended.")
         
+@bot.command(name='submit_to')
+async def submit_to_command(ctx):
+    if not os.path.isfile('event_to.json'):
+        return await ctx.reply("```No ongoing TO-based MO4.```")
+    usr = str(ctx.author.id)
+    if not ctx.message.attachments:
+        return await ctx.reply("```No image attachment detected, please retry.```")
+    if len(ctx.message.attachments) > 1:
+        return await ctx.reply("```More than one attachment detected, please retry.```")
+    if not os.path.isdir('imgcache'):
+        os.mkdir('imgcache')
         
+    img = ctx.message.attachments[0]
+    content_type = img.content_type
+    if not content_type.startswith('image'): 
+        return await ctx.reply("```No image attachment detected, please retry.```")
+    suffix = content_type.split('/')[1]
+    filename = os.path.join('imgcache', f"{usr}.{suffix}")
+    await img.save(fp=filename)
+    matches = detect_helldiver_icon(filename)
+    player = ctx.author.display_name
+    with open('event_to.json', 'r') as f:
+        LOGS = json.load(f)
+    if player not in LOGS:
+        LOGS[player] = matches
+    else:
+        for to in matches:
+            if to not in LOGS[player]:
+                LOGS[player][to] = matches[to]
+            else:
+                LOGS[player][to] += matches[to]
+    with open('event_to.json','w') as f:
+        json.dump(LOGS, f)
+    formatted = '\n'.join([f"{name}:\t{count}"  for name, count in matches.items()])
+    return await ctx.reply(f"```{formatted}```\nMission logged.")
+    
 @bot.command(name='submit')
 async def submit_stats(ctx, idx:str):
     if idx not in ['1', '2', '3', '4']:
         return await ctx.reply("```Incorrect format. Please indicate which are your stats (counting from the left) in the screenshot, e.g. $submit 2```")
     idx = int(idx) - 1
     if not os.path.isfile('event.json'):
-        return await ctx.reply("```No ongoing event.```")
+        return await ctx.reply("```No ongoing stats-based MO4.```")
     usr = str(ctx.author.id)
     if not ctx.message.attachments:
         return await ctx.reply("```No image attachment detected, please retry.```")
@@ -1024,11 +1093,31 @@ async def submit_stats(ctx, idx:str):
     stats = img_to_stats(filename)
     summary = summary_from_stats(stats)
     player = ctx.author.display_name
+    
+    
+    
     player_stats = {}
     for stat in stats:
         player_stats[stat] = stats[stat][idx]
+    
+    kills = sum([int(i) for i in stats['KILLS']])
+    if not os.path.isfile('kills.txt'):
+        with open('kills.txt', 'w') as f:
+            f.write(str(kills))
+    else:
+        with open('kills.txt','r') as f:
+            prev_kills = int(f.read())
+        kills += prev_kills
+        with open('kills.txt','w') as f:
+            f.write(str(kills))
+            
+    
+    
     with open('event.json', 'r') as f:
         LOGS = json.load(f)
+        
+    
+    
     if player not in LOGS:
         LOGS[player] = {}
         for stat in player_stats:
@@ -1039,6 +1128,9 @@ async def submit_stats(ctx, idx:str):
                 LOGS[player][stat].append('N/A')
             else:
                 LOGS[player][stat].append(player_stats[stat])
+                
+                
+                
    
     with open('event.json','w') as f:
         json.dump(LOGS, f)
@@ -1053,20 +1145,7 @@ if __name__ == '__main__':
     bot.run(TOKEN)
     
    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
     
 # there once were a couple of users
 # with brainrotted senses of humor
