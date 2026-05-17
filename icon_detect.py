@@ -92,6 +92,7 @@ def detect_helldiver_icon(image_path):
         most_likely_match = max(scores, key=scores.get)
         matches[most_likely_match] += 1
     matches = {k: v for k, v in matches.items() if v != 0}
+    os.remove(image_path)
     return matches
 
 def init_templates():

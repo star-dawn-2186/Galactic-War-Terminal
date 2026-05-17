@@ -81,8 +81,8 @@ def img_to_stats(imgpath):
                     values.append(int(num))
         stats[stat_name] = values
         
-    # os.remove(imgpath)
-    # os.remove(stats_path)
+    os.remove(imgpath)
+    os.remove(stats_path)
     return stats
         
 def summary_from_stats(stats):

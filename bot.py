@@ -985,11 +985,13 @@ async def leaderboard_loop():
         except Exception:
             pass
     state = 'ongoing'
-    if total_kills < 28000 and time.time() >= 1779113917:
+    if total_kills < 70000 and time.time() >= 1779113917:
         state = 'failure'
-    elif total_kills < 30000 and time.time() >= 1779113917:
+    elif total_kills < 80000 and time.time() >= 1779113917:
         state = 'partial_failure'
-    elif total_kills >= 30000:
+    elif total_kills >= 100000:
+        state = 'overwhelming_success'
+    elif time.time() >= 1779113917:
         state = 'success'
 
     
@@ -1005,6 +1007,9 @@ async def leaderboard_loop():
         case 'success':
             await channel.send(f"## MO4: Success\n**Kills: {total_kills}**\n```{table}```")
             os.rename('event.json','m04_03_success.json')
+        case 'overwhelming_success':
+            await channel.send(f"## MO4: Overwhelming Success\n**Kills: {total_kills}**\n```{table}```")
+            os.rename('event.json','m04_03_overwhelming_success.json')
 
     # await channel.send(f"## Commando Order Progress\n**Total Kills: {total}**\n-# Kills Per Diver: {avg}\n```{table}```")
 
