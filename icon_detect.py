@@ -39,15 +39,15 @@ def detect_helldiver_icon(image_path):
     
     img = img[upper:lower, left:right]
 
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    # hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     
     template_paths = [f"templates/{file}" for file in os.listdir("templates")]
     templates = {}
     for t in template_paths:
         templates[t.split('/')[-1][:-12]] = cv2.imread(t, 0)
 
-    lower_cyan = np.array([220, 220, 100])   
-    upper_cyan = np.array([255, 255, 170]) 
+    lower_cyan = np.array([190, 190, 70])   
+    upper_cyan = np.array([255, 255, 150]) 
     
     mask = cv2.inRange(img, lower_cyan, upper_cyan)
     cv2.imwrite('mask.png', mask)    
@@ -88,7 +88,6 @@ def detect_helldiver_icon(image_path):
             
             scores[name] = iou_score
        
-
         most_likely_match = max(scores, key=scores.get)
         matches[most_likely_match] += 1
     matches = {k: v for k, v in matches.items() if v != 0}
@@ -105,5 +104,5 @@ def init_templates():
 
 if __name__ == '__main__':
     # init_templates()
-    matches = detect_helldiver_icon("image.png")
+    matches = detect_helldiver_icon("20F89C1.JPG")
     print(matches)

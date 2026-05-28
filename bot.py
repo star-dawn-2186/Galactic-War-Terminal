@@ -698,15 +698,17 @@ async def effcalc_command(ctx, *, name: str):
 # Gambit calcs
 @bot.command(name="gambit", help="Calculates feasibility of a gambit.")
 @commands.dynamic_cooldown(custom_cooldown, commands.BucketType.user)
-async def gambitcalc(ctx, *, name: str = commands.parameter(description="- Name of the invaded planet.")):
+async def gambitcalc(ctx, *, name: str):
     api = await api_data()
     planets = await planet_data()
     warinfo = await warinfo_data()
-
+    print('gambit')
     if None in [api, planets, warinfo]:
+        print('error')
         return await send_error_msg(ctx)
-    
+     
     response = calc_gambit(name, api, planets, warinfo)
+    print('response:\n',response)
     msg = format_gambitcalc(response)
     if msg is None:
         msg = "This is not a defense."
@@ -788,64 +790,6 @@ async def advisory_comand(ctx):
         await ctx.reply("Advisory has been set.",mention_author=False)
     else:
         await ctx.reply("Action cancelled, advisory has not been updated.",mention_author=False)
-
-# Set Orders
-@bot.command(name='set_orders')
-@commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
-async def set_orders(ctx):
-    await ctx.reply("Your next message will be set as the current Orders Summary.\n-# Send \'cancel\' to cancel.")
-    def is_valid_order(m):
-        return m.author == ctx.author
-    try:
-        order = await bot.wait_for('message',check=is_valid_order, timeout = 300)
-        ORDER = order.content
-    except asyncio.TimeoutError:
-        await ctx.reply("Timed out, order has not been updated.",mention_author=False)
-    
-    if ORDER == 'cancel':
-        await ctx.reply("Action cancelled, order has not been updated.",mention_author=False)
-    else:
-        await ctx.reply(f"New Order:\n {ORDER}\nConfirm reset order?\n-# Send y or n")
-        def is_valid_confirm(m):
-            return m.content.lower() in ['y','n'] and m.author == ctx.author
-        try:
-            confirm = await bot.wait_for('message', check=is_valid_confirm, timeout = 120)
-            confirm = confirm.content.lower()
-        except asyncio.TimeoutError:
-            return await ctx.reply("Timed out, order has not been updated.",mention_author=False)
-        
-    if confirm == 'y':
-        latest = [msg async for msg in bot.get_channel(botconfig.config['GWR_CHANNEL']['value']).history(limit=1)][0]
-
-        if latest.author.id != bot.user.id:
-            await bot.get_channel(botconfig.config['GWR_CHANNEL']['value']).send(ORDER)
-        else:
-            await latest.edit(content = ORDER)
-        await ctx.reply("Order has been set.",mention_author=False)
-    else:
-        await ctx.reply("Action cancelled, order has not been updated.",mention_author=False)
-
-# Standard Reactions
-@bot.event
-async def on_message(message):
-    if message.channel == bot.get_channel(botconfig.config['GWR_CHANNEL']['value']) and botconfig.config['REACT_TOGGLE']['value']:
-        dms = await message.author.create_dm()
-        await dms.send("New Orders detected. Initiate Standard Reaction Protocol? y/n")
-        def is_valid_confirm(m):
-            return m.content.lower() in ['y','n'] and m.author == message.author and m.channel == dms
-        try:
-            confirm = await bot.wait_for('message', check=is_valid_confirm, timeout = 600)
-            confirm = confirm.content.lower()
-        except asyncio.TimeoutError:
-             return await dms.send("Timed out, no reactions are sent.")
-        if confirm == 'y':
-            for emoji in botconfig.config['EMOJI_LIST']['value']:
-                await message.add_reaction(emoji)
-            await dms.send("Standard Reactions added.")
-        else:
-            await dms.send("Action cancelled, Standard Reactions have not been added")
-    await bot.process_commands(message)
-    
 
 # Sitrep
 @bot.command(name="sitrep", help="Fetches a short summary of the current orders and situation.")
@@ -952,66 +896,94 @@ async def send_msg(ctx):
 
 @tasks.loop(minutes=30)
 async def leaderboard_loop():
-    if not os.path.isfile('event.json'):
+    if not os.path.isfile('event_to.json'):
         return
-    with open("event.json",'r') as f:
+    with open("event_to.json",'r') as f:
         LOGS = json.load(f)
     if len(LOGS) == 0:
         return
-    killcounts = []
-    for player in LOGS:
-        if 'KILLS' not in LOGS[player]: continue
-        kills = LOGS[player]['KILLS']
-        total_kills = sum([int(i) for i in kills if i != 'N/A'])
-        avg_kills = total_kills / len(kills)
-        killcounts.append((player, total_kills, round(avg_kills, 2)))
+    
+    so_complete = not os.path.isfile('event.json')
+    if not so_complete:
+        with open('event.json','r') as f:
+            SO_LOGS = json.load(f)
+        if len(SO_LOGS) != 0:
+            killcounts = []
+            for player in SO_LOGS:
+                if 'KILLS' not in SO_LOGS[player]: continue
+                kills = SO_LOGS[player]['KILLS']
+                total_kills = sum([int(i) for i in kills if i != 'N/A'])
+                avg_kills = total_kills / len(kills)
+                killcounts.append((player, total_kills, round(avg_kills, 2)))
 
-    killcounts = sorted(killcounts, key=lambda x: x[1], reverse=True)
-    table = tabulate(killcounts[:5], headers=["Name", "Total Kills", "Average Kills"])
-    if os.path.isfile('kills.txt'):
-        with open('kills.txt', 'r') as f:
-            total_kills = int(f.read())
+            killcounts = sorted(killcounts, key=lambda x: x[1], reverse=True)
+            table = tabulate(killcounts[:5], headers=["Name", "Total Kills", "Average Kills"])
+            if os.path.isfile('kills.txt'):
+                with open('kills.txt', 'r') as f:
+                    total_kills = int(f.read())
+            
+    mo4_ddl = 1780314262
+    so4_ddl = 1780142625
     
+    br = 0
+    yap = 0
+    for player in LOGS:
+        if 'Cognitive_Disruptor' in LOGS[player]:
+            br += int(LOGS[player]['Cognitive_Disruptor'])
+        if 'Terminate_Illegal_Broadcast' in LOGS[player]:
+            yap += int(LOGS[player]['Terminate_Illegal_Broadcast'])
     
+    goal1, goal2 = 60, 60
+    over1, over2 = 75, 75
+    under1, under2 = 50, 50
+    
+    if os.path.isfile('so4_01_success.json'):
+        goal1, goal2 = 30, 30
+        over1, over2 = 35, 35
+        under1, under2 = 25, 25
+    
+    so_goal = 75000
+
     try:
-        channel = bot.get_channel(1504165314806677506)
+        channel = bot.get_channel(1507331593000194089)
         latest = [msg async for msg in channel.history(limit=1)]
     except AttributeError:
         print("Channel history cannot be accessed")
         return
-    if len(latest) != 0 and latest[0].author.id == bot.user.id and "MO4 Progress" in latest[0].content:
+    if len(latest) != 0 and latest[0].author.id == bot.user.id and "MO4: " in latest[0].content:
         try:
             await latest[0].delete()
         except Exception:
             pass
-    state = 'ongoing'
-    if total_kills < 70000 and time.time() >= 1779113917:
-        state = 'failure'
-    elif total_kills < 80000 and time.time() >= 1779113917:
-        state = 'partial_failure'
-    elif total_kills >= 100000:
-        state = 'overwhelming_success'
-    elif time.time() >= 1779113917:
-        state = 'success'
+    state = 'Ongoing'
+    if br < under1 and yap < under2 and time.time() >= mo4_ddl:
+        state = 'Failure'
+    elif br >= over1 and yap >= over2:
+        state = 'Overwhelming Success'
+    elif br >= goal1 and yap >= goal2 and time.time() >= mo4_ddl:
+        state = 'Success'
+    elif time.time() >= mo4_ddl:
+        state = 'Partial Failure'
+    
+    msg = f"## MO4: {state}\nEnds: <t:{mo4_ddl}:R>\n - Cognitive Disruptors destroyed: **{br}**/{goal1}\n - Illegal Broadcasts silenced: **{yap}**/{goal2}\n"
 
     
-    match state:
-        case 'ongoing':
-            await channel.send(f"## MO4 Progress\n**Kills: {total_kills}**\n```{table}```")
-        case 'failure':
-            await channel.send(f"## MO4: Failure\n***Kills: {total_kills}**\n```{table}```")
-            os.rename('event.json','m04_03_failure.json')
-        case 'partial_failure':
-            await channel.send(f"## MO4: Partial Failure\n**Kills: {total_kills}**\n```{table}```")
-            os.rename('event.json','m04_03_partial_failure.json')
-        case 'success':
-            await channel.send(f"## MO4: Success\n**Kills: {total_kills}**\n```{table}```")
-            os.rename('event.json','m04_03_success.json')
-        case 'overwhelming_success':
-            await channel.send(f"## MO4: Overwhelming Success\n**Kills: {total_kills}**\n```{table}```")
-            os.rename('event.json','m04_03_overwhelming_success.json')
-
-    # await channel.send(f"## Commando Order Progress\n**Total Kills: {total}**\n-# Kills Per Diver: {avg}\n```{table}```")
+    if not so_complete:
+        state2 = 'Ongoing'
+        if total_kills < so_goal and time.time() >= so4_ddl:
+            state2 = 'Failure'
+            so_complete = True
+        elif total_kills >= so_goal:
+            state2 = 'Success'
+            so_complete = True
+        
+        msg += f"## SO4: {state2}\n**Total Kills: {total_kills}**\n```{table}```"
+    
+    
+    if state != 'Ongoing':
+        os.rename('event_to.json',f'm04_05_{state.lower()}.json')
+    elif so_complete:
+        os.rename('event.json',f'so4_01_{state2.lower()}.json')
 
 @bot.command(name='event_start')
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
@@ -1030,11 +1002,13 @@ async def event_start(ctx, to:str):
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
 async def event_end(ctx):
     archive = f"archived_event_{datetime.datetime.now()}.json"
-    try:
+    archive_to = f"archived_event_to_{datetime.datetime.now()}.json"
+    if os.path.isfile('event.json'):
         os.rename("event.json", archive)
-    except:
-        os.rename("event_to.json", archive)
-    return await ctx.reply("Event ended.")
+        await ctx.reply('Event ended.')
+    if os.path.isfile('event_to.json'):
+        os.rename("event_to.json", archive_to)
+        await ctx.reply(" TO Event ended.")
         
 @bot.command(name='submit_to')
 async def submit_to_command(ctx):
