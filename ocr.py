@@ -11,7 +11,7 @@ def process_img(imgpath, quality=75):
             
             img = img.convert('L')
             width, height = img.size
-            upper = int(height * 0.3)
+            upper = int(height * 0.27)
             lower = int(height * 0.8)
             stats_img = img.crop((0, upper, width, lower))
             
@@ -19,7 +19,7 @@ def process_img(imgpath, quality=75):
             stats_img = contrast_enhancer.enhance(1.5)
             
             img_array = np.array(stats_img)
-            mask = (img_array < 200)
+            mask = (img_array < 210)
             img_array[mask] = 0
             stats_img = Image.fromarray(np.uint8(img_array))
             

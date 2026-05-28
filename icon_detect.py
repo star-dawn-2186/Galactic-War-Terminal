@@ -61,7 +61,7 @@ def detect_helldiver_icon(image_path):
     lower_cyan = np.array([190, 190, 70])   
     upper_cyan = np.array([255, 255, 150]) 
     lower_orange = np.array([0, 100, 215])
-    upper_orange = np.array([30, 130, 255])
+    upper_orange = np.array([80, 170, 255])
     
     mask = cv2.inRange(to_img, lower_cyan, upper_cyan)
     mask2 = cv2.inRange(obj_img, lower_orange, upper_orange)
@@ -142,9 +142,11 @@ def detect_helldiver_icon(image_path):
             scores[name] = iou_score
        
         most_likely_match = max(scores, key=scores.get)
+        if scores[most_likely_match] <= 0.6:
+            continue
         obj_matches[most_likely_match] += 1
     obj_matches = {k: v for k, v in obj_matches.items() if v != 0}
-    os.remove(image_path)
+    # os.remove(image_path)
     return matches, obj_matches
 
 def init_templates():
