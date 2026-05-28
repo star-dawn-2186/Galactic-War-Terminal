@@ -977,9 +977,9 @@ async def leaderboard_loop():
             state2 = 'Success'
             so_complete = True
         
-        msg += f"## SO4: {state2}\n**Total Kills: {total_kills}**\n```{table}```"
+        msg += f"## SO4: {state2}\nEnds: <t:{so4_ddl}:R>\n\n**Total Kills: {total_kills}**\n```{table}```"
     
-    
+    await channel.send(msg)
     if state != 'Ongoing':
         os.rename('event_to.json',f'm04_05_{state.lower()}.json')
     elif so_complete:
@@ -1029,7 +1029,12 @@ async def submit_to_command(ctx):
     suffix = content_type.split('/')[1]
     filename = os.path.join('imgcache', f"{usr}.{suffix}")
     await img.save(fp=filename)
-    matches = detect_helldiver_icon(filename)
+    matches, obj_matches = detect_helldiver_icon(filename)
+    for icon, value in obj_matches.items():
+        if icon in matches:
+            matches[icon] += value
+        else:
+            matches[icon] = value
     player = ctx.author.display_name
     with open('event_to.json', 'r') as f:
         LOGS = json.load(f)

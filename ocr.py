@@ -11,7 +11,7 @@ def process_img(imgpath, quality=75):
             
             img = img.convert('L')
             width, height = img.size
-            upper = int(height * 0.25)
+            upper = int(height * 0.3)
             lower = int(height * 0.8)
             stats_img = img.crop((0, upper, width, lower))
             
@@ -81,8 +81,8 @@ def img_to_stats(imgpath):
                     values.append(int(num))
         stats[stat_name] = values
         
-    os.remove(imgpath)
-    os.remove(stats_path)
+    # os.remove(imgpath)
+    # os.remove(stats_path)
     return stats
         
 def summary_from_stats(stats):

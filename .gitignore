@@ -12,6 +12,8 @@ gw_map.py
 graph.html
 .env
 original_icons/*
+mission_icons/*
 templates/*
+mission_templates/*
 *.JPG
 kills.txt
