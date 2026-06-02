@@ -71,7 +71,10 @@ async def update_librate(p_filename=p_FILENAME, r_filename = r_FILENAME, mode='b
             health = int(planet['health'])
             prev_health = healthdict[str(planet['index'])][0]
             delta_health = prev_health - health
-            maxhealth = int(planet_info[planet['index']]['maxHealth'])
+            for p in planet_info:
+                if p['index'] == planet['index']:
+                    maxhealth = int(p['maxHealth'])
+                    break
             healthp = delta_health / maxhealth * 100
             librate = round(healthp / (UPDATE_INTERVAL / 3600),2)
             healthdict[str(planet['index'])] = [health, librate, delta_health, players]

@@ -583,7 +583,10 @@ async def get_command(ctx, *, name: str = commands.parameter(description="- Name
         msg += f"LEVEL **{level}** | **{duration}** HOURS\n"
         rating = get_defense_rating(level, duration)
         msg += f"Difficulty rating: __{rating}__\n"
-        msg += f"**{progress}% DEFENDED**\n{etamsg}\n"
+        if campaign.upper() == 'LIBERATION':
+            msg += f"**{progress}% LIBERATED**\n{etamsg}\n"
+        else:
+            msg += f"**{progress}% DEFENDED**\n{etamsg}\n"
         
     msg += "-"*20 + '\n'
     msg += "### Planet stats:\n"
@@ -896,56 +899,53 @@ async def send_msg(ctx):
 
 @tasks.loop(minutes=30)
 async def leaderboard_loop():
-    if not os.path.isfile('event_to.json'):
-        return
-    with open("event_to.json",'r') as f:
+    
+    mo4_ddl = 1780593300
+    so_ddl = 1780585200
+    if not os.path.isfile('event.json'): return
+    
+    with open('event.json','r') as f:
         LOGS = json.load(f)
-    if len(LOGS) == 0:
-        return
-    
-    so_complete = not os.path.isfile('event.json')
-    if not so_complete:
-        with open('event.json','r') as f:
-            SO_LOGS = json.load(f)
-        if len(SO_LOGS) != 0:
-            killcounts = []
-            for player in SO_LOGS:
-                if 'KILLS' not in SO_LOGS[player]: continue
-                kills = SO_LOGS[player]['KILLS']
-                total_kills = sum([int(i) for i in kills if i != 'N/A'])
-                avg_kills = total_kills / len(kills)
-                killcounts.append((player, total_kills, round(avg_kills, 2)))
+    if len(LOGS) != 0:
+        sample_counts = []
+        for player in LOGS:
+            if 'SAMPLES EXTRACTED' in LOGS[player]: 
+                samples = LOGS[player]['SAMPLES EXTRACTED']
+                total_samples = sum([int(i) for i in samples if i != 'N/A'])
+                avg_samples = total_samples / len(samples)
+                sample_counts.append((player, total_samples, round(avg_samples, 2)))
 
-            killcounts = sorted(killcounts, key=lambda x: x[1], reverse=True)
-            table = tabulate(killcounts[:5], headers=["Name", "Total Kills", "Average Kills"])
-            if os.path.isfile('kills.txt'):
-                with open('kills.txt', 'r') as f:
-                    total_kills = int(f.read())
+        sample_counts = sorted(sample_counts, key=lambda x: x[1], reverse=True)
+        table = tabulate(sample_counts[:5], headers=["Name", "Samples Collected", "Average"])
+        if os.path.isfile('samples.txt'):
+            with open('samples.txt', 'r') as f:
+                total_samples = int(f.read())
+        else: return
+        if os.path.isfile('strats.txt'):
+            with open('strats.txt','r') as f:
+                total_strats = int(f.read())
+        else: return
+    ships = 0
+    if os.path.isfile('event_to.json'):
+        with open('event_to.json','r') as f:
+            SO_LOGS = json.load(f)
+
+        for player in SO_LOGS:
+            if 'Take_Down_Overship' in SO_LOGS[player]:
+                ships += int(SO_LOGS[player]['Take_Down_Overship'])
+    elif not os.path.isfile('so4_02_success.json') and not os.path.isfile('so4_02_failure.json'):
+        return
             
-    mo4_ddl = 1780314262
-    so4_ddl = 1780142625
-    
-    br = 0
-    yap = 0
-    for player in LOGS:
-        if 'Cognitive_Disruptor' in LOGS[player]:
-            br += int(LOGS[player]['Cognitive_Disruptor'])
-        if 'Terminate_Illegal_Broadcast' in LOGS[player]:
-            yap += int(LOGS[player]['Terminate_Illegal_Broadcast'])
-    
-    goal1, goal2 = 60, 60
-    over1, over2 = 75, 75
-    under1, under2 = 50, 50
-    
-    if os.path.isfile('so4_01_success.json'):
-        goal1, goal2 = 30, 30
-        over1, over2 = 35, 35
-        under1, under2 = 25, 25
-    
-    so_goal = 75000
+    goal1, goal2 = 7000, 9000
+    over1, over2 = 8000, 10000
+    under1, under2 = 0, 0
+    if os.path.isfile('so4_02_success.json'):
+        goal1, over1 = int(goal1 * 0.7), int(over1 * 0.7)
+        
+    so_goal = 100
 
     try:
-        channel = bot.get_channel(1507331593000194089)
+        channel = bot.get_channel(1511070196079657050)
         latest = [msg async for msg in channel.history(limit=1)]
     except AttributeError:
         print("Channel history cannot be accessed")
@@ -956,34 +956,32 @@ async def leaderboard_loop():
         except Exception:
             pass
     state = 'Ongoing'
-    if br < under1 and yap < under2 and time.time() >= mo4_ddl:
+    if total_samples < under1 and total_strats < under2 and time.time() >= mo4_ddl:
         state = 'Failure'
-    elif br >= over1 and yap >= over2:
+    elif total_samples >= over1 and total_strats >= over2:
         state = 'Overwhelming Success'
-    elif br >= goal1 and yap >= goal2 and time.time() >= mo4_ddl:
+    elif total_samples >= goal1 and total_strats >= goal2 and time.time() >= mo4_ddl:
         state = 'Success'
     elif time.time() >= mo4_ddl:
         state = 'Partial Failure'
     
-    msg = f"## MO4: {state}\nEnds: <t:{mo4_ddl}:R>\n - Cognitive Disruptors destroyed: **{br}**/{goal1}\n - Illegal Broadcasts silenced: **{yap}**/{goal2}\n"
+    so_state = 'Ongoing'
+    if ships >= so_goal:
+        so_state = 'Success'
+    elif time.time() >= so_ddl:
+        state = 'Failure'
+    
+    so_txt = f'## SO4: {so_state}\nEnds: <t:{so_ddl}:R>\n - Overships Destroyed: **{ships}**/{so_goal}\n' if os.path.isfile('event_to.json') else ''
+    msg = f"## MO4: {state}\nEnds: <t:{mo4_ddl}:R>\n - Samples collected: **{total_samples}**/{goal1}\n - Stratagem balls thrown: **{total_strats}**/{goal2}\n{so_txt}```{table}```"
 
     
-    if not so_complete:
-        state2 = 'Ongoing'
-        if total_kills < so_goal and time.time() >= so4_ddl:
-            state2 = 'Failure'
-            so_complete = True
-        elif total_kills >= so_goal:
-            state2 = 'Success'
-            so_complete = True
-        
-        msg += f"## SO4: {state2}\nEnds: <t:{so4_ddl}:R>\n\n**Total Kills: {total_kills}**\n```{table}```"
     
     await channel.send(msg)
     if state != 'Ongoing':
-        os.rename('event_to.json',f'm04_05_{state.lower()}.json')
-    elif so_complete:
-        os.rename('event.json',f'so4_01_{state2.lower()}.json')
+        os.rename('event.json',f'm04_06_{state.lower()}.json')
+    if so_state != 'Ongoing' and os.path.isfile('event_to.json'):
+        os.rename('event_to.json', f'so4_02_{so_state.lower()}.json')
+
 
 @bot.command(name='event_start')
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
@@ -1008,7 +1006,7 @@ async def event_end(ctx):
         await ctx.reply('Event ended.')
     if os.path.isfile('event_to.json'):
         os.rename("event_to.json", archive_to)
-        await ctx.reply(" TO Event ended.")
+        await ctx.reply("TO Event ended.")
         
 @bot.command(name='submit_to')
 async def submit_to_command(ctx):
@@ -1084,16 +1082,27 @@ async def submit_stats(ctx, idx:str):
     for stat in stats:
         player_stats[stat] = stats[stat][idx]
     
-    kills = sum([int(i) for i in stats['KILLS']])
-    if not os.path.isfile('kills.txt'):
-        with open('kills.txt', 'w') as f:
-            f.write(str(kills))
+    samples = sum([int(i) for i in stats['SAMPLES EXTRACTED']])
+    if not os.path.isfile('samples.txt'):
+        with open('samples.txt', 'w') as f:
+            f.write(str(samples))
     else:
-        with open('kills.txt','r') as f:
-            prev_kills = int(f.read())
-        kills += prev_kills
-        with open('kills.txt','w') as f:
-            f.write(str(kills))
+        with open('samples.txt','r') as f:
+            prev_samples = int(f.read())
+        samples += prev_samples
+        with open('samples.txt','w') as f:
+            f.write(str(samples))
+            
+    strats = sum([int(i) for i in stats['STRATAGEMS USED']])
+    if not os.path.isfile('strats.txt'):
+        with open('strats.txt', 'w') as f:
+            f.write(str(strats))
+    else:
+        with open('strats.txt','r') as f:
+            prev_strats = int(f.read())
+        strats += prev_strats
+        with open('strats.txt','w') as f:
+            f.write(str(strats))
             
     
     
