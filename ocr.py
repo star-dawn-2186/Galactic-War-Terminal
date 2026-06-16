@@ -94,5 +94,5 @@ def summary_from_stats(stats):
         
 
 if __name__ == '__main__':
-    players= img_to_stats('19e860354fc4-screenshotUrl.jpg')
+    players= img_to_stats('屏幕截图 2026-06-05 234539.png')
     print(summary_from_stats(players))
