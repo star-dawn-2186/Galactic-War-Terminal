@@ -18,6 +18,7 @@ import math
 from tabulate import tabulate
 from utils import *
 from find_planets import * 
+from render_mo4 import *
 from parse_assignment import parse_mo, update_mo_tracker
 from horse import horse_predict
 from gambit_calculator import calc_gambit
@@ -961,6 +962,25 @@ async def leaderboard_loop():
     if state != 'Ongoing':
         os.rename('event.json',f'm04_08_{state.lower()}.json')
 
+@bot.command(name='dispatch')
+@commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
+async def gen_dispatch(ctx, title:str, body:str):
+    if not ctx.message.attachments:
+        content = format_html(title, body)
+    else:
+        img = ctx.message.attachments[0]
+        content_type = img.content_type
+        if not content_type.startswith('image'): 
+            return await ctx.reply("```No image attachment detected, please retry.```")
+        await img.save(fp='render_img/header.png')
+        content = format_html(title, body, 'render_img/header.png')
+    
+    with open('render_img/temp.html','w') as f:
+        f.write(content)
+    img_stream = await render_html_to_image(content)
+    img_file = discord.File(fp=img_stream, filename='render.png')
+    await ctx.reply(file=img_file)
+    
 
 
 @bot.command(name='event_start')

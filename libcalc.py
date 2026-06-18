@@ -69,7 +69,10 @@ async def update_librate(p_filename=p_FILENAME, r_filename = r_FILENAME, mode='b
             
             players = planet['players']
             health = int(planet['health'])
-            prev_health = healthdict[str(planet['index'])][0]
+            try:
+                prev_health = healthdict[str(planet['index'])][0]
+            except KeyError:
+                continue
             delta_health = prev_health - health
             for p in planet_info:
                 if p['index'] == planet['index']:
