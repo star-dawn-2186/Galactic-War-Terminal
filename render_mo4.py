@@ -36,10 +36,8 @@ async def render_html_to_image(html_content: str) -> io.BytesIO:
         
         await page.wait_for_load_state("networkidle")
         
-        # Target your container element
         container = page.locator("div.min-w-\\[284px\\]")
         
-        # Take the screenshot as raw bytes (no path specified)
         image_bytes = await container.screenshot(
             omit_background=True,
             animations="disabled"
@@ -47,7 +45,6 @@ async def render_html_to_image(html_content: str) -> io.BytesIO:
         
         await browser.close()
         
-        # Wrap the bytes so discord.py can read them like a file
         image_stream = io.BytesIO(image_bytes)
         image_stream.seek(0)
         
