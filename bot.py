@@ -229,8 +229,11 @@ async def alert_loop():
         stats, _, _ = get_stats_by_name(api, planets, warinfo, idx)
         if stats['campaign'] != "Already liberated":
             for sub in subfactions[idx]:
-                if sub not in prev_subfactions[idx]: # new subfaction
-                    msg += f"{sub.upper()} detected on: {name.upper()}\n"
+                try:
+                    if sub not in prev_subfactions[idx]: # new subfaction
+                        msg += f"{sub.upper()} detected on: {name.upper()}\n"
+                except KeyError:
+                    continue
             for sub in prev_subfactions[idx]:
                 if sub not in subfactions[idx]: # removed subfaction
                     msg += f"{sub.upper()} no longer detected on: {name.upper()}\n"
@@ -366,7 +369,7 @@ async def ticker_loop():
     
     if botconfig.config['TICKER_TOGGLE']['value']:
         
-        thing_to_run = functools.partial(create_stock_ticker_gif, libdict, "stock_ticker.gif")
+        thing_to_run = functools.partial(create_stock_ticker_gif, libdict, "/var/www/GWT/gwt-ticker/stock_ticker.gif")
         await bot.loop.run_in_executor(process_executor, thing_to_run)
         
         # Attempt to free large image buffers ASAP before sending
@@ -386,20 +389,20 @@ async def ticker_loop():
             # If a previous bot message exists, delete it and send a fresh upload.
             if len(latest) != 0 and latest[0].author.id == bot.user.id and not latest[0].content:
                 try:
-                    with open("stock_ticker.gif", "rb") as fp:
-                        file = discord.File(fp, filename="stock_ticker.gif")
+                    with open("/var/www/GWT/gwt-ticker/stock_ticker.gif", "rb") as fp:
+                        file = discord.File(fp, filename="/var/www/GWT/gwt-ticker/stock_ticker.gif")
                         await latest[0].edit(attachments=[file])
                 except Exception:
                     pass
                 
             else:
                 try:
-                    with open("stock_ticker.gif", "rb") as fp:
-                        await channel.send(file=discord.File(fp, filename="stock_ticker.gif"), silent=True)
+                    with open("/var/www/GWT/gwt-ticker/stock_ticker.gif", "rb") as fp:
+                        await channel.send(file=discord.File(fp, filename="/var/www/GWT/gwt-ticker/stock_ticker.gif"), silent=True)
                 except Exception:
                     print("Streaming stock ticker GIF failed, using fallback")
                     # Fallback to previous behavior if streaming fails
-                    await channel.send(file=discord.File("stock_ticker.gif"),silent=True)
+                    await channel.send(file=discord.File("/var/www/GWT/gwt-ticker/stock_ticker.gif"),silent=True)
     else:
         liblist = []
         for key in libdict:

@@ -150,11 +150,11 @@ def calc_required_hp(stats, api_data, planet_data, warinfo, idx):
         required = health
     return min([required,health_copy])
 
-def get_stats_by_name(api_data, planet_data, warinfo_data, name):
+def get_stats_by_name(api_data, planet_data, warinfo_data, name_in):
     
-    idx, name = name_to_idx(name)
+    idx, name = name_to_idx(name_in)
     if idx is None:
-        print("name or idx not found")
+        print(f"{name_in}: name or idx not found")
         return None
     
     total_players = 0    

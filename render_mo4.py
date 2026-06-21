@@ -26,7 +26,6 @@ def format_html(new_title: str, new_body: str, img_path = "render_img/gwr_logo_l
     
 
 async def render_html_to_image(html_content: str) -> io.BytesIO:
-    """Takes an HTML string, renders it in a headless browser, and returns image bytes."""
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         
