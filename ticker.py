@@ -16,17 +16,17 @@ def create_stock_ticker_gif(stock_data, output_path="stock_ticker.gif", fps=40, 
     - fps: frames per second (50 is recommended for smooth GIFs).
     """
     width, height = 600, 80
-    bg_color = (0, 0, 0)
-    text_color = (255, 255, 255)
-    up_color = (0, 255, 0)
-    down_color = (255, 0, 0)
-    neutral_color = (128, 128, 128)
+    bg_color = (0, 0, 0, 0)
+    text_color = (255, 255, 255, 255)
+    up_color = (0, 255, 0, 255)
+    down_color = (255, 0, 0, 255)
+    neutral_color = (128, 128, 128, 255)
     
     # Faction Colors
     faction_map = {
-        't': (241, 158, 29),  # bugs
-        'a': (236, 107, 105),  # bots
-        's': (206, 93, 251)   # squid/illuminate
+        't': (241, 158, 29, 255),  # bugs
+        'a': (236, 107, 105, 255),  # bots
+        's': (206, 93, 251, 255)   # squid/illuminate
     }
 
     # 1. Setup Fonts
@@ -39,7 +39,7 @@ def create_stock_ticker_gif(stock_data, output_path="stock_ticker.gif", fps=40, 
         small_font = ImageFont.load_default()
 
     # 2. Pre-measure and build the "Ticker Tape"
-    temp_draw = ImageDraw.Draw(Image.new('RGB', (1, 1)))
+    temp_draw = ImageDraw.Draw(Image.new('RGBA', (1, 1)))
     
     prepared_entries = []
     total_w = 0
@@ -70,7 +70,7 @@ def create_stock_ticker_gif(stock_data, output_path="stock_ticker.gif", fps=40, 
     # 3. Draw the full Ticker Tape once
     # We add 'width' to the end to allow for a seamless wrap-around
     tape_width = total_w + width
-    tape_img = Image.new('RGB', (tape_width, height), bg_color)
+    tape_img = Image.new('RGBA', (tape_width, height), bg_color)
     draw = ImageDraw.Draw(tape_img)
     
     x = 0
@@ -100,7 +100,7 @@ def create_stock_ticker_gif(stock_data, output_path="stock_ticker.gif", fps=40, 
         frames.append(frame)
 
     # 5. Fast Save
-    imageio.mimsave(output_path, frames, fps=fps, loop=0)
+    imageio.mimsave(output_path, frames, fps=fps, loop=0, disposal=2)
     
     release_memory()
     
