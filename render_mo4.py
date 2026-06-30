@@ -9,7 +9,7 @@ def get_base64_image(image_path: str) -> str:
 
     return f"data:image/png;base64,{b64_string}"
 
-def format_html(new_title: str, new_body: str, img_path = "render_img/gwr_logo_long.png") -> str:
+def format_html(new_title: str, new_body: str, img_path = "render_img/SuperEarthGWR-2.png") -> str:
     b64_image_data = get_base64_image(img_path)    
     
     with open('template.html', "r", encoding="utf-8") as file:

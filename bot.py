@@ -100,8 +100,9 @@ def acecon_format(num):
 async def on_ready():
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
     print('------')
-    ticker_loop.start()
     alert_loop.start()
+    ticker_loop.start()
+    
     mo_archive_loop.start()
     reminder_loop.start()
     leaderboard_loop.start()
@@ -902,45 +903,66 @@ async def send_msg(ctx):
 # Event Commands
 # ====================
 
-@tasks.loop(minutes=30)
+def gen_mo4_progress():
+    mo4_ddl = 1783242056
+    
+    # if not os.path.isfile('event.json') and not os.path.isfile('event_to.json'): return
+    
+    if os.path.isfile('event.json'):
+        with open('event.json','r') as f:
+            LOGS = json.load(f)
+        if len(LOGS) != 0:
+            subgoal_count = []
+            for player in LOGS:
+                if 'KILLS' in LOGS[player]: 
+                    samples = LOGS[player]['KILLS']
+                    total_subgoal = sum([int(i) for i in samples if i != 'N/A'])
+                    avg_subgoal = total_subgoal / len(samples)
+                    subgoal_count.append((player, total_subgoal, round(avg_subgoal, 2)))
+
+            subgoal_count = sorted(subgoal_count, key=lambda x: x[1], reverse=True)
+            table = tabulate(subgoal_count[:5], headers=["Name", "Kills", "Average"])
+            if os.path.isfile('kills.txt'):
+                with open('kills.txt', 'r') as f:
+                    total_kills = int(f.read())
+            else: return
+        else:
+            total_kills = 0
+            
+    if os.path.isfile('event_to.json'):
+        with open('event_to.json','r') as f:
+            TO_LOGS = json.load(f)
+        if len(TO_LOGS) != 0:
+            to_count = sum([int(player['Stalker_Lair']) for player in TO_LOGS])
+        else:
+            to_count = 0
+    elif not os.path.isfile('event.json'):
+        return
+    
+    score = total_kills + to_count * 300
+    goal = 200000
+    state = 'Ongoing'
+    if score >= goal * 1.2:
+        state = 'Overwhelming Success'
+    elif score >= goal and time.time() >= mo4_ddl:
+        state = 'Success'
+    elif score >= goal * 0.8 and time.time() >= mo4_ddl:
+        state = 'Partial Faliure'
+    elif time.time() >= mo4_ddl:
+        state = 'Failure'
+
+    msg = f"## MO4: {state}\nEnds: <t:{mo4_ddl}:R>\n- Genetic data destroyed: **{score}**/{goal}\n-# Terminid kills: {total_kills}\n-# Stalker lairs destroyed: {to_count} \n\n```{table}```"
+    
+    if state != 'Ongoing':
+        os.rename('event.json',f'm04_09_{state.lower()}.json')
+        os.rename('event_to.json', f'mo4_09_to.json')
+    
+    return msg, subgoal_count
+
+@tasks.loop(hours=3)
 async def leaderboard_loop():
     
-    mo4_ddl = 1781279940
-    if not os.path.isfile('event.json'): return
-    
-    with open('event.json','r') as f:
-        LOGS = json.load(f)
-    if len(LOGS) != 0:
-        subgoal_count = []
-        for player in LOGS:
-            if 'KILLS' in LOGS[player]: 
-                samples = LOGS[player]['KILLS']
-                total_subgoal = sum([int(i) for i in samples if i != 'N/A'])
-                avg_subgoal = total_subgoal / len(samples)
-                subgoal_count.append((player, total_subgoal, round(avg_subgoal, 2)))
-
-        subgoal_count = sorted(subgoal_count, key=lambda x: x[1], reverse=True)
-        table = tabulate(subgoal_count[:5], headers=["Name", "Kills", "Average"])
-        if os.path.isfile('kills.txt'):
-            with open('kills.txt', 'r') as f:
-                total_subgoal = int(f.read())
-        else: return
-    est_kill_per_day = 52000
-    est_kill_per_hour = est_kill_per_day // 48
-    kill_lo, kill_hi = est_kill_per_hour * 0.8, est_kill_per_hour * 1.2
-    rat_kills = random.randint(int(kill_lo), int(kill_hi))
-    
-    if not os.path.isfile('rat_kills.txt'):
-        with open('rat_kills.txt','w') as f:
-            f.write(str(rat_kills))
-    else:
-        with open('rat_kills.txt','r') as f:
-            rat_prev = int(f.read())
-            rat_kills += rat_prev
-        with open('rat_kills.txt','w') as f:
-            f.write(str(rat_kills))
-            
-            
+    msg, _ = gen_mo4_progress()
     try:
         channel = bot.get_channel(1513946244492431500)
         latest = [msg async for msg in channel.history(limit=1)]
@@ -952,18 +974,27 @@ async def leaderboard_loop():
             await latest[0].delete()
         except Exception:
             pass
-    state = 'Ongoing'
-    if total_subgoal >= rat_kills and time.time() >= mo4_ddl:
-        state = 'Success'
-    elif time.time() >= mo4_ddl:
-        state = 'Failure'
-
-    
-    msg = f"## MO4: {state}\nEnds: <t:{mo4_ddl}:R>\n- Commando kills: {total_subgoal}\n- R.A.T. kills: {rat_kills} \n\n```{table}```"
-
     await channel.send(msg)
-    if state != 'Ongoing':
-        os.rename('event.json',f'm04_08_{state.lower()}.json')
+    
+@bot.command(name='mo4')
+@commands.dynamic_cooldown(custom_cooldown, commands.BucketType.user)
+async def mo4_progress_command(ctx):
+    msg, subgoal_count = gen_mo4_progress()
+    player = ctx.author.display_name
+    names = [i[0] for i in subgoal_count]
+    if player in names:
+        rank = names.index(player) 
+    else:
+        rank = -1
+    if rank != -1:
+        stats = [[rank+1, subgoal_count[rank][1],subgoal_count[rank][2]]]
+        stats_table = tabulate(stats, headers=["Rank", "Kills", "Average"])
+        txt = f"\n**Your stats:**\n ```{stats_table}```"
+    else: 
+        txt = "-# You haven't submitted a mission yet."
+    msg += txt
+    await ctx.reply(msg)
+    
 
 @bot.command(name='dispatch')
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
@@ -1129,7 +1160,13 @@ intents.guilds = True
 if __name__ == '__main__':
     bot.run(TOKEN)
     
-   
+
+
+
+
+
+
+
 # there once were a couple of users
 # with brainrotted senses of humor
 # they had an obsession
