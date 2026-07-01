@@ -933,7 +933,7 @@ def gen_mo4_progress():
         with open('event_to.json','r') as f:
             TO_LOGS = json.load(f)
         if len(TO_LOGS) != 0:
-            to_count = sum([int(player['Stalker_Lair']) for player in TO_LOGS])
+            to_count = sum([int(TO_LOGS[player]['Stalker_Lair']) for player in TO_LOGS])
         else:
             to_count = 0
     elif not os.path.isfile('event.json'):
@@ -964,7 +964,7 @@ async def leaderboard_loop():
     
     msg, _ = gen_mo4_progress()
     try:
-        channel = bot.get_channel(1513946244492431500)
+        channel = bot.get_channel(1521738410216263752)
         latest = [msg async for msg in channel.history(limit=1)]
     except AttributeError:
         print("Channel history cannot be accessed")
@@ -991,7 +991,7 @@ async def mo4_progress_command(ctx):
         stats_table = tabulate(stats, headers=["Rank", "Kills", "Average"])
         txt = f"\n**Your stats:**\n ```{stats_table}```"
     else: 
-        txt = "-# You haven't submitted a mission yet."
+        txt = "\n-# You haven't submitted a mission yet."
     msg += txt
     await ctx.reply(msg)
     

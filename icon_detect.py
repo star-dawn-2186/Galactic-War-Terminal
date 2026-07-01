@@ -19,14 +19,14 @@ def prepare_svg_template(svg_file_path, scale=5.0):
     
 
     
-    binary_template = cv2.bitwise_not(binary_template)
+    # binary_template = cv2.bitwise_not(binary_template)
     
     points = cv2.findNonZero(binary_template)
     x, y, w, h = cv2.boundingRect(points)
     cropped = binary_template[y:y+h, x:x+w]
 
     filename = svg_file_path.split('\\')[-1].replace('svg', 'png')
-    output_path = os.path.join('mission_templates',filename)
+    output_path = os.path.join('templates',filename)
     cv2.imwrite(output_path, cropped)
     print(f"Template saved to {output_path}")
     
@@ -99,12 +99,17 @@ def detect_helldiver_icon(image_path):
             _, icon = cv2.threshold(icon, 127, 255, cv2.THRESH_BINARY)
             _, resized_template = cv2.threshold(resized_template, 127, 255, cv2.THRESH_BINARY)
             
+            cv2.imwrite(f"{x}.png", icon)
+            if name == 'Stalker_Lair':
+                cv2.imwrite(f"{x}_template.png", resized_template)
+            
             intersection = np.logical_and(icon, resized_template)
             union = np.logical_or(icon, resized_template)
             
             iou_score = np.sum(intersection) / np.sum(union)
             
             scores[name] = iou_score
+        print(scores)
        
         most_likely_match = max(scores, key=scores.get)
         matches[most_likely_match] += 1
@@ -150,7 +155,7 @@ def detect_helldiver_icon(image_path):
     return matches, obj_matches
 
 def init_templates():
-    svg_path = 'mission_icons'
+    svg_path = 'original_icons'
     filenames = os.listdir(svg_path)
     for filename in filenames:
         path = os.path.join(svg_path, filename)
