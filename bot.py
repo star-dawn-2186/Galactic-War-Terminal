@@ -904,8 +904,9 @@ async def send_msg(ctx):
 # ====================
 
 def gen_mo4_progress():
-    mo4_ddl = 1783242056
-    
+    mo4_ddl = 1783595320
+    start = 1783395151
+    multiplier = 1.33 if time.time() <= start + 24*3600 else 1
     # if not os.path.isfile('event.json') and not os.path.isfile('event_to.json'): return
     
     if os.path.isfile('event.json'):
@@ -914,16 +915,16 @@ def gen_mo4_progress():
         if len(LOGS) != 0:
             subgoal_count = []
             for player in LOGS:
-                if 'KILLS' in LOGS[player]: 
-                    samples = LOGS[player]['KILLS']
-                    total_subgoal = sum([int(i) for i in samples if i != 'N/A'])
-                    avg_subgoal = total_subgoal / len(samples)
+                if 'SHOTS FIRED' in LOGS[player]: 
+                    shots = LOGS[player]['SHOTS FIRED']
+                    total_subgoal = sum([int(i * multiplier) for i in shots if i != 'N/A'])
+                    avg_subgoal = total_subgoal / len(shots)
                     subgoal_count.append((player, total_subgoal, round(avg_subgoal, 2)))
 
             subgoal_count = sorted(subgoal_count, key=lambda x: x[1], reverse=True)
-            table = tabulate(subgoal_count[:5], headers=["Name", "Kills", "Average"])
-            if os.path.isfile('kills.txt'):
-                with open('kills.txt', 'r') as f:
+            table = tabulate(subgoal_count[:5], headers=["Name", "Shots Fired", "Average"])
+            if os.path.isfile('shots.txt'):
+                with open('shots.txt', 'r') as f:
                     total_kills = int(f.read())
             else: return
         else:
@@ -932,30 +933,36 @@ def gen_mo4_progress():
     if os.path.isfile('event_to.json'):
         with open('event_to.json','r') as f:
             TO_LOGS = json.load(f)
+        airbase_count = 0
+        gunships = 0
         if len(TO_LOGS) != 0:
-            to_count = sum([int(TO_LOGS[player]['Stalker_Lair']) for player in TO_LOGS])
-        else:
-            to_count = 0
+            for player in TO_LOGS:
+                if 'Sabotage_Air_Base' in TO_LOGS[player]:
+                    airbase_count += int(TO_LOGS[player]['Sabotage_Air_Base']) * multiplier
+                if 'Gunship_Facility'in TO_LOGS[player]:
+                    gunships += int(TO_LOGS[player]['Gunship_Facility']) * multiplier
     elif not os.path.isfile('event.json'):
         return
     
-    score = total_kills + to_count * 300
-    goal = 200000
+    score1 = int(gunships + airbase_count * 4)
+    goal1 = 300
+    score2 = int(total_kills)
+    goal2 = 350000
     state = 'Ongoing'
-    if score >= goal * 1.2:
+    if score1 >= goal1 * 1.2 or score2 >= goal2:
         state = 'Overwhelming Success'
-    elif score >= goal and time.time() >= mo4_ddl:
+    elif score1 >= goal1 and score2 >= goal2 and time.time() >= mo4_ddl:
         state = 'Success'
-    elif score >= goal * 0.8 and time.time() >= mo4_ddl:
+    elif score1 >= goal1 * 0.8 or score2 >= goal2 * 0.8 and time.time() >= mo4_ddl:
         state = 'Partial Faliure'
     elif time.time() >= mo4_ddl:
         state = 'Failure'
 
-    msg = f"## MO4: {state}\nEnds: <t:{mo4_ddl}:R>\n- Genetic data destroyed: **{score}**/{goal}\n-# Terminid kills: {total_kills}\n-# Stalker lairs destroyed: {to_count} \n\n```{table}```"
+    msg = f"## MO4: {state}\nEnds: <t:{mo4_ddl}:R>\n- Automaton fleet assets destroyed: **{score1}**/{goal1}\n-# Air Bases destroyed: {airbase_count}\n-# Gunship Facilities destroyed: {gunships}\n- Shots Fired: **{total_kills}**/{goal2} \n\n```{table}```"
     
     if state != 'Ongoing':
-        os.rename('event.json',f'm04_09_{state.lower()}.json')
-        os.rename('event_to.json', f'mo4_09_to.json')
+        os.rename('event.json',f'm04_10_{state.lower()}.json')
+        os.rename('event_to.json', f'mo4_10_to.json')
     
     return msg, subgoal_count
 
@@ -988,7 +995,7 @@ async def mo4_progress_command(ctx):
         rank = -1
     if rank != -1:
         stats = [[rank+1, subgoal_count[rank][1],subgoal_count[rank][2]]]
-        stats_table = tabulate(stats, headers=["Rank", "Kills", "Average"])
+        stats_table = tabulate(stats, headers=["Rank", "Shots fired", "Average"])
         txt = f"\n**Your stats:**\n ```{stats_table}```"
     else: 
         txt = "\n-# You haven't submitted a mission yet."
@@ -1020,7 +1027,9 @@ async def gen_dispatch(ctx, title:str, body:str):
 @bot.command(name='event_start')
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
 async def event_start(ctx, to:str):
-    
+    start_time = time.time()
+    with open('start.txt','w') as f:
+        f.write(str(int(start_time)))
     init_json = {}
     if to == 'to':
         with open('event_to.json','w') as f:
@@ -1064,9 +1073,11 @@ async def submit_to_command(ctx):
     matches, obj_matches = detect_helldiver_icon(filename)
     for icon, value in obj_matches.items():
         if icon in matches:
-            matches[icon] += value
+            matches[icon] += value 
         else:
             matches[icon] = value
+    if 'Sabotage_Air_Base_2' in matches:
+        matches['Sabotage_Air_Base'] = 1
     player = ctx.author.display_name
     with open('event_to.json', 'r') as f:
         LOGS = json.load(f)
@@ -1111,20 +1122,22 @@ async def submit_stats(ctx, idx:str):
     player = ctx.author.display_name
     
     
+    start = 1783395151
+    multiplier = 1.33 if time.time() <= start + 24*3600 else 1
     
     player_stats = {}
     for stat in stats:
         player_stats[stat] = stats[stat][idx]
     
-    kills = sum([int(i) for i in stats['KILLS']])
-    if not os.path.isfile('kills.txt'):
-        with open('kills.txt', 'w') as f:
+    kills = int(sum([int(i) for i in stats['SHOTS FIRED']]) * multiplier)
+    if not os.path.isfile('shots.txt'):
+        with open('shots.txt', 'w') as f:
             f.write(str(kills))
     else:
-        with open('kills.txt','r') as f:
+        with open('shots.txt','r') as f:
             prev_kills = int(f.read())
         kills += prev_kills
-        with open('kills.txt','w') as f:
+        with open('shots.txt','w') as f:
             f.write(str(kills))
             
     

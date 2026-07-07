@@ -65,8 +65,8 @@ def detect_helldiver_icon(image_path):
     
     mask = cv2.inRange(to_img, lower_cyan, upper_cyan)
     mask2 = cv2.inRange(obj_img, lower_orange, upper_orange)
-    cv2.imwrite('mask.png', mask)    
-    cv2.imwrite('orange_mask.png', mask2)
+    # cv2.imwrite('mask.png', mask)    
+    # cv2.imwrite('orange_mask.png', mask2)
     
     
     kernel = np.ones((7, 7), np.uint8)
@@ -99,9 +99,6 @@ def detect_helldiver_icon(image_path):
             _, icon = cv2.threshold(icon, 127, 255, cv2.THRESH_BINARY)
             _, resized_template = cv2.threshold(resized_template, 127, 255, cv2.THRESH_BINARY)
             
-            cv2.imwrite(f"{x}.png", icon)
-            if name == 'Stalker_Lair':
-                cv2.imwrite(f"{x}_template.png", resized_template)
             
             intersection = np.logical_and(icon, resized_template)
             union = np.logical_or(icon, resized_template)
@@ -151,7 +148,7 @@ def detect_helldiver_icon(image_path):
             continue
         obj_matches[most_likely_match] += 1
     obj_matches = {k: v for k, v in obj_matches.items() if v != 0}
-    # os.remove(image_path)
+    os.remove(image_path)
     return matches, obj_matches
 
 def init_templates():

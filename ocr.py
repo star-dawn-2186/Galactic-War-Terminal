@@ -81,8 +81,8 @@ def img_to_stats(imgpath):
                     values.append(int(num))
         stats[stat_name] = values
         
-    # os.remove(imgpath)
-    # os.remove(stats_path)
+    os.remove(imgpath)
+    os.remove(stats_path)
     return stats
         
 def summary_from_stats(stats):
@@ -94,5 +94,5 @@ def summary_from_stats(stats):
         
 
 if __name__ == '__main__':
-    players= img_to_stats('屏幕截图 2026-06-05 234539.png')
+    players= img_to_stats('image.png')
     print(summary_from_stats(players))
