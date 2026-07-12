@@ -26,25 +26,27 @@ def calc_gambit(idx, api_data, planet_data, warinfo):
     elif len(sources) > 1:
         return "Multiple attack sources, gambit highly discouraged"
     
+
     source_idx = sources[0]
     targets = [idx]
     
     for attack in attacks:
+
         if attack['source'] == source_idx and attack['target'] != idx:
             targets.append(attack['target'])
     
     target_names = [name_to_idx(target_idx)[1] for target_idx in targets]
-    
+
     
     source_stats, _, source_name = get_stats_by_name(api_data, planet_data, warinfo, source_idx)
-    
+
     # target hp calc
     target_required = 0
     for target_idx in targets:
-        target_required += calc_required_hp(api_data, planet_data, warinfo, target_idx)
+        target_required += get_stats_by_name(api_data, planet_data, warinfo, target_idx)[0]['required']
               
     # source hp calc
-    source_required = calc_required_hp(api_data, planet_data, warinfo, source_idx)
+    source_required = source_stats['required']
 
     source_effects = get_effects_by_idx(api_data, source_idx)
     target_effects = []
@@ -82,7 +84,6 @@ def calc_gambit(idx, api_data, planet_data, warinfo):
         elif dss == 'target':
             score -= 0.1
         score += source_horse / target_horse - 1
-        
     result = {"score": score,
             "source": {"name": source_name,
                        "required": source_required},

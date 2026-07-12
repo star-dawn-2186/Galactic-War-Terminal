@@ -28,7 +28,6 @@ from effcalc import calc_region_eff_from_name, diff_to_dmg
 from ocr import img_to_stats, summary_from_stats
 from icon_detect import detect_helldiver_icon
 
-
 process_executor = ProcessPoolExecutor(max_workers=1)
 load_dotenv()
 
@@ -77,7 +76,6 @@ def safe_parse_config(input_str):
     except (ValueError, SyntaxError):
         return clean_input
 
-
 def is_authorized(ctx):
     try:
         for role in ['galactic war leader', 'galactic war advisor', 'turbo nerd', 'commander🎱']:
@@ -107,8 +105,6 @@ async def on_ready():
     reminder_loop.start()
     leaderboard_loop.start()
     mo_loop.start()
-    
-
 
 # Notification when a new MO thread is created
 @bot.event
@@ -279,8 +275,6 @@ async def alert_loop():
         await bot.get_channel(HANGOUT_CHANNEL).send(f"```{msg}```")
     with open("decays.json", 'w') as f:
         json.dump(decays, f)
-
-    
             
 # Reminder to close threads when MO ends
 @tasks.loop(minutes = 30)
@@ -535,8 +529,7 @@ async def get_command(ctx, *, name: str = commands.parameter(description="- Name
         if not (key == 'progress' or key == 'eta'):
             static_txt.append([key,str(static[key])])
     effects = get_effects_by_idx(data, idx)[0]
-    
-    
+      
     
     eta = static['eta']
     progress = static['progress']
@@ -615,7 +608,6 @@ async def get_command(ctx, *, name: str = commands.parameter(description="- Name
             
 
     return await ctx.reply(msg)
-    
     
 @get_command.error
 async def get_error(ctx, error):
@@ -717,7 +709,6 @@ async def gambitcalc(ctx, *, name: str):
         return await send_error_msg(ctx)
      
     response = calc_gambit(name, api, planets, warinfo)
-    print('response:\n',response)
     msg = format_gambitcalc(response)
     if msg is None:
         msg = "This is not a defense."
@@ -898,9 +889,8 @@ async def send_msg(ctx):
     else:
         await ctx.reply("Action cancelled.", mention_author=False)
 
-
 # ====================
-# Event Commands
+# MO4 Commands
 # ====================
 
 def gen_mo4_progress():
@@ -949,12 +939,12 @@ def gen_mo4_progress():
     score2 = int(total_kills)
     goal2 = 350000
     state = 'Ongoing'
-    if score1 >= goal1 * 1.2 or score2 >= goal2:
+    if score1 >= goal1 * 1.75 and score2 >= goal2 * 1.2:
         state = 'Overwhelming Success'
     elif score1 >= goal1 and score2 >= goal2 and time.time() >= mo4_ddl:
         state = 'Success'
-    elif score1 >= goal1 * 0.8 or score2 >= goal2 * 0.8 and time.time() >= mo4_ddl:
-        state = 'Partial Faliure'
+    elif (score1 >= goal1 * 0.8 or score2 >= goal2 * 0.8) and time.time() >= mo4_ddl:
+        state = 'Partial Failure'
     elif time.time() >= mo4_ddl:
         state = 'Failure'
 
@@ -966,6 +956,7 @@ def gen_mo4_progress():
     
     return msg, subgoal_count
 
+# Periodically announce MO4 progress
 @tasks.loop(hours=3)
 async def leaderboard_loop():
     
@@ -982,7 +973,8 @@ async def leaderboard_loop():
         except Exception:
             pass
     await channel.send(msg)
-    
+
+# Manual MO4 progress check
 @bot.command(name='mo4')
 @commands.dynamic_cooldown(custom_cooldown, commands.BucketType.user)
 async def mo4_progress_command(ctx):
@@ -1002,7 +994,7 @@ async def mo4_progress_command(ctx):
     msg += txt
     await ctx.reply(msg)
     
-
+# Generates official-style MO dispatch
 @bot.command(name='dispatch')
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
 async def gen_dispatch(ctx, title:str, body:str):
@@ -1022,8 +1014,7 @@ async def gen_dispatch(ctx, title:str, body:str):
     img_file = discord.File(fp=img_stream, filename='render.png')
     await ctx.reply(file=img_file)
     
-
-
+# Starts a tracker
 @bot.command(name='event_start')
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
 async def event_start(ctx, to:str):
@@ -1038,7 +1029,8 @@ async def event_start(ctx, to:str):
     with open('event.json','w') as f:
         json.dump(init_json, f)
     return await ctx.reply("Event initiated.")
-    
+
+# Ends both trackers
 @bot.command(name='event_end')
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
 async def event_end(ctx):
@@ -1050,7 +1042,9 @@ async def event_end(ctx):
     if os.path.isfile('event_to.json'):
         os.rename("event_to.json", archive_to)
         await ctx.reply("TO Event ended.")
-        
+
+
+# Submitting a mission objective
 @bot.command(name='submit_to')
 async def submit_to_command(ctx):
     if not os.path.isfile('event_to.json'):
@@ -1093,7 +1087,8 @@ async def submit_to_command(ctx):
         json.dump(LOGS, f)
     formatted = '\n'.join([f"{name}:\t{count}"  for name, count in matches.items()])
     return await ctx.reply(f"```{formatted}```\nMission logged.")
-    
+
+# Submitting mission stats
 @bot.command(name='submit')
 async def submit_stats(ctx, idx:str):
     if idx not in ['1', '2', '3', '4']:
@@ -1139,13 +1134,9 @@ async def submit_stats(ctx, idx:str):
         kills += prev_kills
         with open('shots.txt','w') as f:
             f.write(str(kills))
-            
-    
     
     with open('event.json', 'r') as f:
         LOGS = json.load(f)
-        
-    
     
     if player not in LOGS:
         LOGS[player] = {}
@@ -1157,29 +1148,17 @@ async def submit_stats(ctx, idx:str):
                 LOGS[player][stat].append('N/A')
             else:
                 LOGS[player][stat].append(player_stats[stat])
-                
-                
-                
+                              
    
     with open('event.json','w') as f:
         json.dump(LOGS, f)
     return await ctx.reply(f"```{summary}```\nYour stats have been logged for analysis.")
-    
-    
 
 intents.message_content = True
 intents.guilds = True
 
 if __name__ == '__main__':
     bot.run(TOKEN)
-    
-
-
-
-
-
-
-
 # there once were a couple of users
 # with brainrotted senses of humor
 # they had an obsession
