@@ -703,7 +703,6 @@ async def gambitcalc(ctx, *, name: str):
     api = await api_data()
     planets = await planet_data()
     warinfo = await warinfo_data()
-    print('gambit')
     if None in [api, planets, warinfo]:
         print('error')
         return await send_error_msg(ctx)

@@ -27,9 +27,8 @@ def calc_region_eff_from_name(api_data, warinfo_data, planet_data, name):
         region_players += players
         regen = region['regen']
         pop = players / total_players * 100
-        state = type(region['eta']) != str
-        if state:
-            eff = int((delta_health + regen * UPDATE_INTERVAL) / pop / (UPDATE_INTERVAL / 3600))
+        if type(region['eta']) != str:
+            eff = int((delta_health + regen * 60) / pop / (60 / 3600))
             weighted_avg_eff += region['pop'] / 100 * eff
         else:
             eff = 'N/A' 
