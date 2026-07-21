@@ -25,7 +25,7 @@ def process_img(imgpath, quality=75):
             
             
             imgname = imgpath.split('.')[0]
-            stats_path = imgname + '.jpeg'
+            stats_path = imgname + '_processed.jpeg'
             stats_img.save(stats_path, "JPEG", quality=quality, optimize=True)
     except IOError as e:
         print(f"Error compressing image: {e}")
@@ -52,7 +52,7 @@ def is_num(s):
 def img_to_stats(imgpath):
     process_img(imgpath)
     imgname = imgpath.split('.')[0]
-    stats_path = imgname + '.jpeg'
+    stats_path = imgname + '_processed.jpeg'
     stats = json.loads(ocr_space_file(stats_path))
     txt = stats['ParsedResults'][0]['ParsedText'].split('\n')
 
