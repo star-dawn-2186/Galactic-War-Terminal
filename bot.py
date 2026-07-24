@@ -866,10 +866,15 @@ async def send_msg(ctx):
     def is_valid_msg(m):
         return m.author == ctx.author
     try:
-        msg = await bot.wait_for('message', check = is_valid_msg, timeout = 120)
-        msg = msg.content
+        message = await bot.wait_for('message', check = is_valid_msg, timeout = 120)
+        msg = message.content
     except asyncio.TimeoutError:
         return await ctx.reply("Timed out.", mention_author=False)
+    if message.attachments:
+        files = [await attachment.to_file() for attachment in message.attachments]
+    else:
+        files = False
+
     if msg == 'cancel':
         return await ctx.reply("Cancelled.")
     else:
@@ -882,7 +887,10 @@ async def send_msg(ctx):
         except asyncio.TimeoutError:
             return await ctx.reply("Timed out.", mention_author=False)
     if confirm == 'y':
-        await channel.send(f"```{msg}```")
+        if not files:
+            await channel.send(f"```{msg}```")
+        else:
+            await channel.send(files=files)
         return await ctx.reply("Message sent.")
         
     else:
@@ -893,82 +901,80 @@ async def send_msg(ctx):
 # ====================
 
 def gen_mo4_progress():
-    mo4_ddl = 1784796099
+    mo4_ddl = 1785142700
     # if not os.path.isfile('event.json') and not os.path.isfile('event_to.json'): return
     
-    if os.path.isfile('event.json'):
-        with open('event.json','r') as f:
-            LOGS = json.load(f)
-        if len(LOGS) != 0:
-            subgoal_count = []
-            total_shots, total_hits = 0, 0
-            for player in LOGS:
-                if 'KILLS' in LOGS[player]: 
-                    kills = LOGS[player]['KILLS']
-                    total_subgoal = sum([int(i) for i in kills if i != 'N/A'])
-                    avg_subgoal = total_subgoal / len(kills)
-                    subgoal_count.append((player, total_subgoal, round(avg_subgoal, 2)))
+    # if os.path.isfile('event.json'):
+    #     with open('event.json','r') as f:
+    #         LOGS = json.load(f)
+    #     if len(LOGS) != 0:
+    #         subgoal_count = []
+    #         total_shots, total_hits = 0, 0
+    #         for player in LOGS:
+    #             if 'KILLS' in LOGS[player]: 
+    #                 kills = LOGS[player]['KILLS']
+    #                 total_subgoal = sum([int(i) for i in kills if i != 'N/A'])
+    #                 avg_subgoal = total_subgoal / len(kills)
+    #                 subgoal_count.append((player, total_subgoal, round(avg_subgoal, 2)))
 
 
-            subgoal_count = sorted(subgoal_count, key=lambda x: x[1], reverse=True)
-            table = tabulate(subgoal_count[:5], headers=["Name", "Total Kills", "Average"])
-            if os.path.isfile('kills.txt'):
-                with open('kills.txt', 'r') as f:
-                    total_kills = int(f.read())
-            else: return
-            if os.path.isfile('shots.txt'):
-                with open('shots.txt', 'r') as f:
-                    total_shots = int(f.read())
-            if os.path.isfile('hits.txt'):
-                with open('hits.txt', 'r') as f:
-                    total_hits = int(f.read())
+    #         subgoal_count = sorted(subgoal_count, key=lambda x: x[1], reverse=True)
+    #         table = tabulate(subgoal_count[:5], headers=["Name", "Total Kills", "Average"])
+    #         if os.path.isfile('kills.txt'):
+    #             with open('kills.txt', 'r') as f:
+    #                 total_kills = int(f.read())
+    #         else: return
+    #         if os.path.isfile('shots.txt'):
+    #             with open('shots.txt', 'r') as f:
+    #                 total_shots = int(f.read())
+    #         if os.path.isfile('hits.txt'):
+    #             with open('hits.txt', 'r') as f:
+    #                 total_hits = int(f.read())
                     
-        else:
-            return
+    #     else:
+    #         return
             
-    # if os.path.isfile('event_to.json'):
-    #     with open('event_to.json','r') as f:
-    #         TO_LOGS = json.load(f)
-    #     airbase_count = 0
-    #     gunships = 0
-    #     if len(TO_LOGS) != 0:
-    #         for player in TO_LOGS:
-    #             if 'Sabotage_Air_Base' in TO_LOGS[player]:
-    #                 airbase_count += int(TO_LOGS[player]['Sabotage_Air_Base']) * multiplier
-    #             if 'Gunship_Facility'in TO_LOGS[player]:
-    #                 gunships += int(TO_LOGS[player]['Gunship_Facility']) * multiplier
+    if os.path.isfile('event_to.json'):
+        with open('event_to.json','r') as f:
+            TO_LOGS = json.load(f)
+        if len(TO_LOGS) != 0:
+            objs = ['Anti-Air_Emplacement', 'Compromise_Automaton_Defenses', 'Destroy_Fuel_Reserves', 'Destroy_Stockpiled_Ammunition','Destroy_Transmission_Network', 'Detector_Tower', 'Eliminate_Hulk', 'Enemy_Bio-Processors', 'Gunship_Facility', 'Intercept_Convoy', 'Mortar_Emplacement', 'Stratagem_Jammer']
+            obj_counts = {}
+            for obj in objs:
+                obj_counts[obj] = 0
+            for player in TO_LOGS:
+                for obj in objs:
+                    if obj in TO_LOGS[player]:
+                        obj_counts[obj] += TO_LOGS[player][obj]
     else:
         return
     
-    score1 = int(total_kills)
-    goal1 = 100000
-    if total_shots == 0:
-        score2 = 0
-    else:
-        score2 = round(total_hits / total_shots * 100, 1)
-    goal2 = 50
+    table = tabulate(obj_counts.items(), headers=['Objective', 'Count'])
+    
+    score1 = sum([obj_counts[i] for i in obj_counts])
+    goal1 = 450
     state = 'Ongoing'
-    if score1 >= goal1 * 1.5 and score2 >= goal2 * 1.2:
+    if score1 >= goal1 * 1.2:
         state = 'Overwhelming Success'
-    elif score1 >= goal1 and score2 >= goal2 and time.time() >= mo4_ddl:
+    elif score1 >= goal1 and time.time() >= mo4_ddl:
         state = 'Success'
-    elif (score1 >= goal1 * 0.8 or score2 >= goal2 * 0.8) and time.time() >= mo4_ddl:
+    elif (score1 >= goal1 * 0.8) and time.time() >= mo4_ddl:
         state = 'Partial Failure'
     elif time.time() >= mo4_ddl:
         state = 'Failure'
 
-    msg = f"## MO4: {state}\nEnds: <t:{mo4_ddl}:R>\n- Automaton kills: **{score1}**/{goal1} \n- Average Accuracy: **{score2}**%\n\n```{table}```"
+    msg = f"## MO4: {state}\nEnds: <t:{mo4_ddl}:R>\n- Tactical Objectives completed:  **{score1}**/{goal1}\n\n```{table}```"
     
     if state != 'Ongoing':
-        os.rename('event.json',f'm04_11_{state.lower()}.json')
+        os.rename('event_to.json',f'm04_12_{state.lower()}.json')
     
-    return msg, subgoal_count
+    return msg
 
 # Periodically announce MO4 progress
 @tasks.loop(hours=3)
 async def leaderboard_loop():
     
-    msg, _ = gen_mo4_progress()
+    msg = gen_mo4_progress()
     try:
         channel = bot.get_channel(1528736305012412487)
         latest = [msg async for msg in channel.history(limit=1)]
@@ -986,20 +992,20 @@ async def leaderboard_loop():
 @bot.command(name='mo4')
 @commands.dynamic_cooldown(custom_cooldown, commands.BucketType.user)
 async def mo4_progress_command(ctx):
-    msg, subgoal_count = gen_mo4_progress()
-    player = ctx.author.display_name
-    names = [i[0] for i in subgoal_count]
-    if player in names:
-        rank = names.index(player) 
-    else:
-        rank = -1
-    if rank != -1:
-        stats = [[rank+1, subgoal_count[rank][1],subgoal_count[rank][2]]]
-        stats_table = tabulate(stats, headers=["Rank", "Total Kills", "Average"])
-        txt = f"\n**Your stats:**\n ```{stats_table}```"
-    else: 
-        txt = "\n-# You haven't submitted a mission yet."
-    msg += txt
+    msg = gen_mo4_progress()
+    # player = ctx.author.display_name
+    # names = [i[0] for i in subgoal_count]
+    # if player in names:
+    #     rank = names.index(player) 
+    # else:
+    #     rank = -1
+    # if rank != -1:
+    #     stats = [[rank+1, subgoal_count[rank][1],subgoal_count[rank][2]]]
+    #     stats_table = tabulate(stats, headers=["Rank", "Total Kills", "Average"])
+    #     txt = f"\n**Your stats:**\n ```{stats_table}```"
+    # else: 
+    #     txt = "\n-# You haven't submitted a mission yet."
+    # msg += txt
     await ctx.reply(msg)
     
 # Generates official-style MO dispatch

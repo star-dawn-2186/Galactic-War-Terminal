@@ -40,8 +40,8 @@ def detect_helldiver_icon(image_path):
     lower = int(height * 0.65)
     upper2 = int(height * 0.2)
     lower2 = int(height * 0.5)
-    left = int(width * 0.35)
-    right = int(width * 0.65)
+    left = int(width * 0.37)
+    right = int(width * 0.62)
     
     to_img = img[upper:lower, left:right]
     obj_img = img[upper2:lower2, left:right]
@@ -65,8 +65,8 @@ def detect_helldiver_icon(image_path):
     
     mask = cv2.inRange(to_img, lower_cyan, upper_cyan)
     mask2 = cv2.inRange(obj_img, lower_orange, upper_orange)
-    # cv2.imwrite('mask.png', mask)    
-    # cv2.imwrite('orange_mask.png', mask2)
+    cv2.imwrite('mask.png', mask)    
+    cv2.imwrite('orange_mask.png', mask2)
     
     
     kernel = np.ones((7, 7), np.uint8)

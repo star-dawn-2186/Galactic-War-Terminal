@@ -17,3 +17,4 @@ templates/*
 mission_templates/*
 *.JPG
 kills.txt
+output.csv
