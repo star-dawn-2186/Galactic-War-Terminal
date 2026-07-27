@@ -2,6 +2,7 @@ from tabulate import tabulate
 import time
 import json
 import aiohttp
+import asyncio
 import requests
 from aiohttp import TCPConnector
 from static_data import environmental_info
@@ -13,6 +14,7 @@ planet_link = "https://helldiverstrainingmanual.com/api/v1/planets"
 campaign_link = "https://helldiverstrainingmanual.com/api/v1/war/campaign"
 MO_link = "https://api.live.prod.thehelldiversgame.com/api/v2/Assignment/War/801"
 dss_vote_link = 'https://redivivus-nixon-uncomplicated.ngrok-free.dev/election/'
+dss_donation_link = 'https://api.live.prod.thehelldiversgame.com/api/SpaceStation/801/749875195'
 
 _session = None
 
@@ -46,6 +48,24 @@ async def planet_data():
     return await fetch_json(planet_link)
 async def campaign_data():
     return await fetch_json(campaign_link)
+def dss_donation_data():
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'DNT': '1',
+        'Sec-GPC': '1',
+        'Priority': 'u=0, i'
+        }
+    response = requests.get(dss_donation_link, headers=headers)
+    return response.json()
+
 def MO_data():
     headers = {'Accept-Language': 'en-US,en;q=0.9'}
     response = requests.get(MO_link, headers=headers)
@@ -54,23 +74,6 @@ def DSS_voting_data(): # "What a great way to solve this issue, Joe. Well done. 
     
     cookies = {
         'abuse_interstitial': 'redivivus-nixon-uncomplicated.ngrok-free.dev',
-    }
-
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        # 'Accept-Encoding': 'gzip, deflate, br, zstd',
-        'Connection': 'keep-alive',
-        # 'Cookie': 'abuse_interstitial=redivivus-nixon-uncomplicated.ngrok-free.dev',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'DNT': '1',
-        'Sec-GPC': '1',
-        'Priority': 'u=0, i',
     }
 
     response = requests.get('https://redivivus-nixon-uncomplicated.ngrok-free.dev/election/', cookies=cookies)
@@ -256,4 +259,11 @@ class BotConfig():
             value = self.config[cfg]['value']
             msg += f"**{cfg}**\n-# {desc}\nCurrent value: {value}\n"
         return msg
-    
+
+async def main():
+    text = dss_donation_data()
+    with open('dss.json', 'w') as f:
+        json.dump(text, f, indent=4)
+
+if __name__ == '__main__':
+    asyncio.run(main())

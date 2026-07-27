@@ -18,6 +18,7 @@ import math
 from tabulate import tabulate
 from utils import *
 from find_planets import * 
+from parse_dss import get_dss_info
 from render_mo4 import *
 from parse_assignment import parse_mo, update_mo_tracker
 from horse import horse_predict
@@ -476,14 +477,29 @@ async def dss_voting_command(ctx):
     except Exception as e:
         print(e)
         await ctx.reply("DSS data offline.")
-    
+        
 @dss_voting_command.error
 async def dss_voting_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
         await ctx.reply(f"Look up.\n-# Command on cooldown, try again after {error.retry_after:.2f}s.")
     else:
         print(error)
-    
+        
+# Get DSS Donation Data
+@bot.command(name='dss')
+@commands.dynamic_cooldown(custom_cooldown, commands.BucketType.user)
+async def dss_command(ctx):
+    dss_json = dss_donation_data()
+    text = await get_dss_info(dss_json)
+    await ctx.reply(text)
+
+@dss_command.error
+async def dss_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.reply(f"Look up.\n-# Command on cooldown, try again after {error.retry_after:.2f}s.")
+    else:
+        print(error)
+
 @bot.command(name='progress')
 @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
 async def progress_command(ctx):
