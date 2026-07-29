@@ -3,6 +3,7 @@ import json
 import os
 from utils import MO_data
 from find_planets import name_to_idx
+from config import EVENTS_DIR
 with open("json_data/assignments/tasks/task/type.json") as f:
     TYPES = json.load(f)
 with open("json_data/assignments/tasks/task/valueTypes.json") as f:
@@ -65,20 +66,22 @@ def init_mo_tracker():
     for order in orders:
         task_progress = [{'progress': task['progress'], 'goal': task['goal'], 'delta': 0} for task in order['tasks']]
         progresses.append(task_progress)
-    with open('mo_tracker.json', 'w') as f:
+    with open(os.path.join(EVENTS_DIR, 'mo_tracker.json'), 'w') as f:
         json.dump(progresses, f)
 
 def update_mo_tracker():
     mo_data = MO_data()
     if len(mo_data) == 0:
-        if not os.path.isfile('mo_tracker.json'):
+        tracker_path = os.path.join(EVENTS_DIR, 'mo_tracker.json')
+        if not os.path.isfile(tracker_path):
             return
-        os.rename('mo_tracker.json', f'mo_{time.time()}.json')
+        os.rename(tracker_path, os.path.join(EVENTS_DIR, f'mo_{time.time()}.json'))
         return
-    if not os.path.isfile('mo_tracker.json'):
+    tracker_path = os.path.join(EVENTS_DIR, 'mo_tracker.json')
+    if not os.path.isfile(tracker_path):
         init_mo_tracker()
         return
-    with open('mo_tracker.json', 'r') as f:
+    with open(tracker_path, 'r') as f:
         prev_progress = json.load(f)
         
     orders = parse_mo(mo_data)
@@ -93,7 +96,7 @@ def update_mo_tracker():
         for j in range(len(orders[i]['tasks'])):
             delta = orders[i]['tasks'][j]['progress'] - prev_progress[i][j]['progress']
             progresses[i][j]['delta'] = delta
-    with open('mo_tracker.json', 'w') as f:
+    with open(os.path.join(EVENTS_DIR, 'mo_tracker.json'), 'w') as f:
         json.dump(progresses, f)
             
             

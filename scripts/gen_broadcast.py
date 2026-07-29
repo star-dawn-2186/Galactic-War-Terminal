@@ -1,5 +1,9 @@
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import random
-from utils import *
+from utils import api_data, planet_data, warinfo_data
 from find_planets import name_to_idx, get_regions_by_name
 import asyncio
 async def get_locations():
@@ -91,10 +95,12 @@ def generate_broadcast():
         print(e)
         return ''
     
-locations = asyncio.run(get_locations())
-locations = locations[0] + locations[1]
-POOLS['location'] = locations
-while True:
-    input()
-    print(generate_broadcast())
+if __name__ == '__main__':
+    import asyncio
+    locations = asyncio.run(get_locations())
+    locations = locations[0] + locations[1]
+    POOLS['location'] = locations
+    while True:
+        input()
+        print(generate_broadcast())
     

@@ -1,10 +1,12 @@
 from tabulate import tabulate
 import time
 import json
+import os
 import aiohttp
 import asyncio
 import requests
 from aiohttp import TCPConnector
+from discord.ext import commands
 from static_data import environmental_info
 
 
@@ -30,7 +32,6 @@ async def fetch_json(url):
     session = await get_session()
     try:
         async with session.get(url, timeout=10, allow_redirects=True) as response:
-            
             if response.status == 200:
                 return await response.json()
             error_text = await response.text()
@@ -39,6 +40,14 @@ async def fetch_json(url):
     except Exception as e:
         print(f"API Error: {e}")
         return None
+
+
+async def fetch_war_data():
+    """Fetch api, planets, warinfo in parallel. Returns (api, planets, warinfo) or None."""
+    api, planets, warinfo = await asyncio.gather(api_data(), planet_data(), warinfo_data())
+    if None in (api, planets, warinfo):
+        return None
+    return api, planets, warinfo
 
 async def api_data():
     return await fetch_json(status_link)
@@ -80,16 +89,6 @@ def DSS_voting_data(): # "What a great way to solve this issue, Joe. Well done. 
     return response.json()
 
 
-def format_planet_data(names, static_txt, effects):
-    print(names)
-    print(tabulate(static_txt))
-
-    print('-'*20)
-    print("Active planet effects: ")
-    for effect in effects:
-        print(effect)
-    print('-'*20)
-
 def format_environmental_data(env_list):
     msg = ''
     for env in env_list:
@@ -124,7 +123,7 @@ def format_region_data(regions, name):
             progress = str(progress) + "% " + "Liberated"
             
         region_txt += f' - Current status: **{progress}**\n'     
-        if type(eta) == str:
+        if isinstance(eta, str):
             etamsg = eta
         elif float(eta) > 0:
             etamsg = f"Full Liberation **<t:{int(current + eta * 3600)}:R>**"
@@ -178,7 +177,7 @@ def format_duration(seconds):
 def format_gambitcalc(result):
     if result is None:
         return None
-    if type(result) == str:
+    if isinstance(result, str):
         return result
     score = result['score']
     source_name, source_required = result['source']['name'].upper(), result['source']['required']
@@ -260,10 +259,24 @@ class BotConfig():
             msg += f"**{cfg}**\n-# {desc}\nCurrent value: {value}\n"
         return msg
 
-async def main():
-    text = dss_donation_data()
-    with open('dss.json', 'w') as f:
-        json.dump(text, f, indent=4)
+def cooldown_error_handler(prefix=""):
+    """Returns a reusable command error handler that replies on cooldown."""
+    async def handler(ctx, error):
+        if isinstance(error, commands.CommandOnCooldown):
+            msg = f"{prefix}\n-# Command on cooldown, try again after {error.retry_after:.2f}s."
+            await ctx.reply(msg)
+        else:
+            print(error)
+    return handler
 
-if __name__ == '__main__':
-    asyncio.run(main())
+
+def increment_counter_file(filename: str, amount: int) -> int:
+    """Read-modify-write an integer counter file. Returns the new total."""
+    prev = 0
+    if os.path.isfile(filename):
+        with open(filename, 'r') as f:
+            prev = int(f.read())
+    total = prev + amount
+    with open(filename, 'w') as f:
+        f.write(str(total))
+    return total

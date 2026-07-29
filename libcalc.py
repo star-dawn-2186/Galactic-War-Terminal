@@ -1,10 +1,11 @@
 import json
 from datetime import datetime
 from utils import api_data, warinfo_data
+from config import LIBERATION_DIR
 import os
 UPDATE_INTERVAL = 600
-p_FILENAME = "prev_health.json"
-r_FILENAME = "region_health.json"
+p_FILENAME = os.path.join(LIBERATION_DIR, "prev_health.json")
+r_FILENAME = os.path.join(LIBERATION_DIR, "region_health.json")
 # logic:
 # get current health from status
 # get past health from stored

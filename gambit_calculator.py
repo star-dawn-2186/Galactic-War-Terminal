@@ -1,5 +1,4 @@
-from utils import *
-from find_planets import *
+from find_planets import name_to_idx, get_stats_by_name, get_effects_by_idx
 from horse import horse_predict
 
 

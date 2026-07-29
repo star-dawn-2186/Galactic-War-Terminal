@@ -1,5 +1,9 @@
 import json
+import os
 import pandas as pd
+
+_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+EVENTS_DIR = os.path.join(_BASE, 'data', 'events')
 def generate_kill_stats_table(file_path):
 
     try:
@@ -38,8 +42,8 @@ def generate_kill_stats_table(file_path):
     for stat in player_stats:
         print(f"{stat['Player']:<35} | {stat['Total Kills']:<12} | {stat['Missions']:<10} | {stat['Avg Kills/Mission']:.2f}")
     df = pd.DataFrame(player_stats)
-    df.to_csv("output.csv", index=False)
+    df.to_csv(os.path.join(EVENTS_DIR, "output.csv"), index=False)
 if __name__ == "__main__":
 
-    json_filename = 'm04_11_overwhelming success.json'
+    json_filename = os.path.join(EVENTS_DIR, 'm04_11_overwhelming success.json')
     generate_kill_stats_table(json_filename)

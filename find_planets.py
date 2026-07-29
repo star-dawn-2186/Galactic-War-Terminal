@@ -95,6 +95,11 @@ def find_planet_or_region_by_name(api_data, warinfo_data, name, planet_names=pla
         return None
 
 def name_to_idx(name):
+    """Resolve a planet name or numeric index to (int_index, str_name).
+    
+    Accepts either a string planet name (case-insensitive) or an integer index.
+    Returns (idx, name) tuple, or (None, None) if not found.
+    """
     idx = -1
     try:
         idx = int(name)
@@ -225,9 +230,9 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name_in):
     
     try:
         names = planet_info[str(idx)]['names']
-        UNnames = ' // '.join([names['en-US'], names['es-ES'], names['fr-FR'], names['ru-RU'], names['zh-Hans']])
+        localized_names = ' // '.join([names['en-US'], names['es-ES'], names['fr-FR'], names['ru-RU'], names['zh-Hans']])
     except:
-        UNnames = "N/A"
+        localized_names = "N/A"
         
     if name == '':
         name = f"Planet {idx}"
@@ -297,7 +302,7 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name_in):
     required_hp = calc_required_hp(stats, api_data, planet_data, warinfo_data, idx)
     stats['required'] = required_hp
     
-    return stats, UNnames, name
+    return stats, localized_names, name
         
 
 def get_effects_by_idx(api_data, idx):

@@ -1,5 +1,4 @@
 from static_data import biomes
-from utils import *
 
 
 weights = {"MO":0.938,

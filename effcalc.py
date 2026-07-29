@@ -1,6 +1,6 @@
-from find_planets import *
-from utils import *
-from libcalc import *
+from find_planets import name_to_idx, get_regions_by_name, get_stats_by_name
+from libcalc import get_librate_from_idx, get_region_librate_from_idx, UPDATE_INTERVAL
+from static_data import diff_to_dmg
 
 # (delta_health + regen * time) / pop% / (time / 1h)
 def calc_region_eff_from_name(api_data, warinfo_data, planet_data, name):
@@ -27,7 +27,7 @@ def calc_region_eff_from_name(api_data, warinfo_data, planet_data, name):
         region_players += players
         regen = region['regen']
         pop = players / total_players * 100
-        if type(region['eta']) != str:
+        if not isinstance(region['eta'], str):
             eff = int((delta_health + regen * 60) / pop / (60 / 3600))
             weighted_avg_eff += region['pop'] / 100 * eff
         else:
@@ -72,16 +72,3 @@ def calc_planet_eff_from_idx(api_data, warinfo_data, planet_data, idx):
         eff = 'N/A'
     
     return None, eff, eff
-
-diff_to_dmg = [
-    ["D1", 136],
-    ["D2", 144],
-    ["D3", 40, 160],
-    ["D4", 44, 176],
-    ["D5", 50, 50, 200],
-    ["D6", 58, 58, 232],
-    ["D7", 67, 67, 268],
-    ["D8", 77, 77, 308],
-    ["D9", 89, 89, 356],
-    ["D10", 102, 102, 408]
-]

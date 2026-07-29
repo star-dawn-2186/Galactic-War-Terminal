@@ -19,8 +19,6 @@ def prepare_svg_template(svg_file_path, scale=5.0):
     
 
     
-    # binary_template = cv2.bitwise_not(binary_template)
-    
     points = cv2.findNonZero(binary_template)
     x, y, w, h = cv2.boundingRect(points)
     cropped = binary_template[y:y+h, x:x+w]
