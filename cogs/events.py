@@ -5,7 +5,6 @@ import time
 import datetime
 
 from discord.ext import commands
-from tabulate import tabulate
 
 from helpers import custom_cooldown
 from utils import cooldown_error_handler, increment_counter_file
@@ -14,52 +13,99 @@ from icon_detect import detect_helldiver_icon
 from config import EVENTS_DIR
 
 
+def _read_counter(filepath):
+    """Read an integer counter file, returning 0 if missing."""
+    if os.path.isfile(filepath):
+        with open(filepath, 'r') as f:
+            content = f.read().strip()
+            return int(content) if content else 0
+    return 0
+
+
 def gen_mo4_progress():
-    """Generate MO4 tactical objective progress message."""
-    mo4_ddl = 1785142700
+    """Generate MO4 objective progress message (stats + TO sections)."""
+    mo4_ddl = 1785662059
+    sections = []
 
-    if not os.path.isfile(os.path.join(EVENTS_DIR, 'event_to.json')):
+    # --- Stats-based objectives (event.json) ---
+    if os.path.isfile(os.path.join(EVENTS_DIR, 'event.json')):
+        total_kills = _read_counter(os.path.join(EVENTS_DIR, 'kills.txt'))
+        total_deaths = _read_counter(os.path.join(EVENTS_DIR, 'deaths.txt'))
+        total_shots = _read_counter(os.path.join(EVENTS_DIR, 'shots.txt'))
+        total_hits = _read_counter(os.path.join(EVENTS_DIR, 'hits.txt'))
+        total_samples = _read_counter(os.path.join(EVENTS_DIR, 'samples.txt'))
+
+        kdr = total_kills / total_deaths if total_deaths > 0 else float(total_kills)
+        accuracy = (total_hits / total_shots * 100) if total_shots > 0 else 0.0
+
+        goal_kills = 150000
+        goal_kdr = 500
+        goal_accuracy = 90
+        goal_samples = 500
+
+        objectives_met = (
+            total_kills >= goal_kills
+            and kdr >= goal_kdr
+            and accuracy >= goal_accuracy
+            and total_samples >= goal_samples
+        )
+
+        state = 'Ongoing'
+        if time.time() >= mo4_ddl:
+            state = 'Success' if objectives_met else 'Failure'
+
+        sections.append(
+            f"## MO4: {state}\n"
+            f"Ends: <t:{mo4_ddl}:R>\n"
+            f"- Kills: **{total_kills}**/{goal_kills}\n"
+            f"- KDR: **{kdr:.1f}**/{goal_kdr}\n"
+            f"- Accuracy: **{accuracy:.1f}%**/{goal_accuracy}%\n"
+            f"- Samples Collected: **{total_samples}**/{goal_samples}"
+        )
+
+        if state != 'Ongoing':
+            os.rename(
+                os.path.join(EVENTS_DIR, 'event.json'),
+                os.path.join(EVENTS_DIR, f'm04_13_{state.lower()}.json')
+            )
+
+    # --- TO-based objectives (event_to.json) ---
+    if os.path.isfile(os.path.join(EVENTS_DIR, 'event_to.json')):
+        with open(os.path.join(EVENTS_DIR, 'event_to.json'), 'r') as f:
+            TO_LOGS = json.load(f)
+
+        goal_air = 150
+        goal_evac = 50
+
+        count_air = 0
+        count_evac = 0
+        for player in TO_LOGS:
+            count_air += TO_LOGS[player].get('Restore_Air_Quality', 0)
+            count_evac += TO_LOGS[player].get('Emergency_Evacuation', 0)
+
+        to_met = count_air >= goal_air and count_evac >= goal_evac
+
+        to_state = 'Ongoing'
+        if time.time() >= mo4_ddl:
+            to_state = 'Success' if to_met else 'Failure'
+
+        sections.append(
+            f"## SO4: {to_state}\n"
+            f"Ends: <t:{mo4_ddl}:R>\n"
+            f"- Air Quality Restored: **{count_air}**/{goal_air}\n"
+            f"- Colonist Groups Evacuated: **{count_evac}**/{goal_evac}"
+        )
+
+        if to_state != 'Ongoing':
+            os.rename(
+                os.path.join(EVENTS_DIR, 'event_to.json'),
+                os.path.join(EVENTS_DIR, f'm04_13_{to_state.lower()}_to.json')
+            )
+
+    if not sections:
         return None
 
-    with open(os.path.join(EVENTS_DIR, 'event_to.json'), 'r') as f:
-        TO_LOGS = json.load(f)
-
-    if len(TO_LOGS) == 0:
-        return None
-
-    objs = [
-        'Anti-Air_Emplacement', 'Compromise_Automaton_Defenses',
-        'Destroy_Fuel_Reserves', 'Destroy_Stockpiled_Ammunition',
-        'Destroy_Transmission_Network', 'Detector_Tower',
-        'Eliminate_Hulk', 'Enemy_Bio-Processors', 'Gunship_Facility',
-        'Intercept_Convoy', 'Mortar_Emplacement', 'Stratagem_Jammer',
-    ]
-    obj_counts = {obj: 0 for obj in objs}
-    for player in TO_LOGS:
-        for obj in objs:
-            if obj in TO_LOGS[player]:
-                obj_counts[obj] += TO_LOGS[player][obj]
-
-    table = tabulate(obj_counts.items(), headers=['Objective', 'Count'])
-
-    score1 = sum(obj_counts.values())
-    goal1 = 450
-    state = 'Ongoing'
-    if score1 >= goal1 * 1.2:
-        state = 'Overwhelming Success'
-    elif score1 >= goal1 and time.time() >= mo4_ddl:
-        state = 'Success'
-    elif (score1 >= goal1 * 0.8) and time.time() >= mo4_ddl:
-        state = 'Partial Failure'
-    elif time.time() >= mo4_ddl:
-        state = 'Failure'
-
-    msg = f"## MO4: {state}\nEnds: <t:{mo4_ddl}:R>\n- Tactical Objectives completed:  **{score1}**/{goal1}\n\n```{table}```"
-
-    if state != 'Ongoing':
-        os.rename(os.path.join(EVENTS_DIR, 'event_to.json'), os.path.join(EVENTS_DIR, f'm04_12_{state.lower()}.json'))
-
-    return msg
+    return '\n\n'.join(sections)
 
 
 class Events(commands.Cog):
@@ -91,6 +137,9 @@ class Events(commands.Cog):
             return await ctx.reply("TO Event initiated.")
         with open(os.path.join(EVENTS_DIR, 'event.json'), 'w') as f:
             json.dump(init_json, f)
+        for counter in ('kills.txt', 'deaths.txt', 'shots.txt', 'hits.txt', 'samples.txt'):
+            with open(os.path.join(EVENTS_DIR, counter), 'w') as f:
+                f.write('0')
         return await ctx.reply("Event initiated.")
 
     @commands.command(name='event_end')
@@ -181,14 +230,20 @@ class Events(commands.Cog):
         for stat in stats:
             player_stats[stat] = stats[stat][idx]
 
-        kills = int(sum([int(i) for i in stats['KILLS']]))
+        kills = int(sum([int(i) for i in stats['KILLS'] if i != 'N/A']))
         increment_counter_file(os.path.join(EVENTS_DIR, 'kills.txt'), kills)
+
+        deaths = int(sum([int(i) for i in stats['DEATHS'] if i != 'N/A']))
+        increment_counter_file(os.path.join(EVENTS_DIR, 'deaths.txt'), deaths)
 
         shots = int(sum([int(i) for i in stats['SHOTS FIRED'] if i != 'N/A']))
         increment_counter_file(os.path.join(EVENTS_DIR, 'shots.txt'), shots)
 
         hits = int(sum([int(i) for i in stats['SHOTS HIT'] if i != 'N/A']))
         increment_counter_file(os.path.join(EVENTS_DIR, 'hits.txt'), hits)
+
+        samples = int(sum([int(i) for i in stats['SAMPLES EXTRACTED'] if i != 'N/A']))
+        increment_counter_file(os.path.join(EVENTS_DIR, 'samples.txt'), samples)
 
         with open(os.path.join(EVENTS_DIR, 'event.json'), 'r') as f:
             LOGS = json.load(f)

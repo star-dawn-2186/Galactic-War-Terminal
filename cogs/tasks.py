@@ -21,13 +21,14 @@ from config import (
 from helpers import is_authorized, send_error_msg, botconfig
 from utils import (
     fetch_war_data, api_data, planet_data, warinfo_data, MO_data,
-    format_duration,
+    format_duration, dss_donation_data,
 )
 from find_planets import (
     name_to_idx, get_stats_by_name, get_effects_by_idx, get_regions_by_name,
     get_defense_rating,
 )
 from parse_assignment import update_mo_tracker
+from parse_dss import get_dss_info
 from libcalc import get_librate_from_idx, update_librate, UPDATE_INTERVAL
 from effcalc import calc_region_eff_from_name
 from ticker import create_stock_ticker_gif
@@ -244,6 +245,54 @@ class Tasks(commands.Cog):
             await self.bot.get_channel(HANGOUT_CHANNEL).send(f"```{msg}```")
         with open(decays_path, 'w') as f:
             json.dump(decays, f)
+
+        try:
+            dss_json = dss_donation_data()
+            _, action_data = await get_dss_info(dss_json)
+        except Exception:
+            action_data = None
+
+        if action_data is not None:
+            dss_alert_path = os.path.join(LIBERATION_DIR, "dss_alerts.json")
+            if os.path.isfile(dss_alert_path):
+                with open(dss_alert_path, 'r') as f:
+                    dss_state = json.load(f)
+            else:
+                dss_state = {}
+
+            now = int(time.time())
+            dss_msg = ""
+
+            for action in action_data:
+                a_name = action['name']
+                if a_name not in dss_state:
+                    dss_state[a_name] = {'eta_alert_sent': False, 'active_alert_sent': False, 'expires': None}
+
+                state = dss_state[a_name]
+
+                # Reset alerts if the action has expired
+                if state['expires'] is not None and now > state['expires']:
+                    state['eta_alert_sent'] = False
+                    state['active_alert_sent'] = False
+                    state['expires'] = None
+
+                if action['is_active']:
+                    state['expires'] = action['expires']
+                    if not state['active_alert_sent']:
+                        dss_msg += f"{a_name.upper()} is now ACTIVE\n"
+                        state['active_alert_sent'] = True
+                else:
+                    eta = action['eta']
+                    if eta is not None and (eta - now) <= 3600 and not state['eta_alert_sent']:
+                        dss_msg += f"{a_name.upper()} IS CLOSE TO ACTIVATION\n"
+                        state['eta_alert_sent'] = True
+
+            if dss_msg:
+                alert_text = "!!== PRIORITY ALERT: DEMOCRACY SPACE STATION ==!!\n" + dss_msg
+                await self.bot.get_channel(HANGOUT_CHANNEL).send(f"```{alert_text}```")
+
+            with open(dss_alert_path, 'w') as f:
+                json.dump(dss_state, f)
 
     # ====================
     # Reminder Loop

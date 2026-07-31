@@ -57,7 +57,7 @@ class Info(commands.Cog):
     @commands.dynamic_cooldown(custom_cooldown, commands.BucketType.user)
     async def dss_command(self, ctx):
         dss_json = dss_donation_data()
-        text = await get_dss_info(dss_json)
+        text, _ = await get_dss_info(dss_json)
         await ctx.reply(text)
 
     @dss_command.error
@@ -122,6 +122,8 @@ class Info(commands.Cog):
         progress = static['progress']
         current = time.time()
         campaign = static['campaign']
+        regions, _ = get_regions_by_name(api, warinfo, planet, name)
+        total_region_pop = sum([r['pop'] for r in regions])
         flag = 'level' in static
         usealg = eta is None
         if usealg:
@@ -130,7 +132,7 @@ class Info(commands.Cog):
             if weighted_eff * static['pop%'] == 0:
                 eta = "**STALEMATE**"
             else:
-                eta = required / (weighted_eff * static['pop%'])
+                eta = required / (weighted_eff * static['pop%'] * total_region_pop / 100)
 
         if campaign == "Already liberated":
             etamsg = "**Liberty Secured**"
