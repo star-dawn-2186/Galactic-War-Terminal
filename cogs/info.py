@@ -124,15 +124,22 @@ class Info(commands.Cog):
         campaign = static['campaign']
         regions, _ = get_regions_by_name(api, warinfo, planet, name)
         total_region_pop = sum([r['pop'] for r in regions])
+        total_region_health = sum([r['health'] for r in regions])
+        all_liberated = all([r['eta'] in ["**Liberty Secured**", "Unavailable"] for r in regions])
         flag = 'level' in static
         usealg = eta is None
         if usealg:
             required = static['required']
+            if total_region_health <= required or (flag and not all_liberated):
+                opt_pop = static['pop%'] * total_region_pop / 100
+            else:
+                opt_pop = static['pop%'] * (1 - total_region_pop / 100)
+
             _, _, weighted_eff = calc_region_eff_from_name(api, warinfo, planet, name)
             if weighted_eff * static['pop%'] == 0:
                 eta = "**STALEMATE**"
-            else:
-                eta = required / (weighted_eff * static['pop%'] * total_region_pop / 100)
+            else:                
+                eta = required / (weighted_eff * opt_pop)
 
         if campaign == "Already liberated":
             etamsg = "**Liberty Secured**"

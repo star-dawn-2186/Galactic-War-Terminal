@@ -390,6 +390,7 @@ def get_regions_by_name(api_data, warinfo_data, planet_data, name):
             eta = "[CORRUPTED DATA, POSSIBLE AUTOMATON INTEFERENCE]"
         elif owner == 1: # no need to do any calculations if the region is already ours, NEEDS CONFIRMATION WHETHER THIS BREAKS REGIONS ON A PLANET WITH AN ACTIVE DEFENSE
             eta = "**Liberty Secured**"
+            health = 0
         elif librate > 0: # liberation rate greater than 0 -> calculate time to 100% liberation
             eta = (100 - progress) / librate
         elif librate < 0: # liberation rate lesser than 0 -> calculate time to 0% liberation
