@@ -18,3 +18,4 @@ mission_templates/*
 *.JPG
 kills.txt
 output.csv
+region_eta.py

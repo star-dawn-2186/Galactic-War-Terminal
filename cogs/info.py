@@ -136,10 +136,14 @@ class Info(commands.Cog):
                 opt_pop = static['pop%'] * (1 - total_region_pop / 100)
 
             _, _, weighted_eff = calc_region_eff_from_name(api, warinfo, planet, name)
-            if weighted_eff * static['pop%'] == 0:
+            regen_per_hour = static.get('regen', 0) * 3600
+            rate = weighted_eff * opt_pop - regen_per_hour
+            if rate > 0:
+                eta = required / rate
+            elif rate < 0:
+                eta = (static['maxhealth'] - static['health']) / rate
+            else:
                 eta = "**STALEMATE**"
-            else:                
-                eta = required / (weighted_eff * opt_pop)
 
         if campaign == "Already liberated":
             etamsg = "**Liberty Secured**"
