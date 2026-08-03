@@ -367,6 +367,7 @@ class Tasks(commands.Cog):
                 else:
                     eta = required / (weighted_eff * stats['pop%'])
             if librate is None:
+                print("librate None error")
                 return
             leaderboard.append([name, pop, librate, eta, faction[0].lower(), defense])
         leaderboard = sorted(leaderboard, key=lambda x: x[1], reverse=True)[:5]
@@ -408,8 +409,8 @@ class Tasks(commands.Cog):
                         with open("/var/www/GWT/gwt-ticker/stock_ticker.gif", "rb") as fp:
                             file = discord.File(fp, filename="/var/www/GWT/gwt-ticker/stock_ticker.gif")
                             await latest[0].edit(attachments=[file])
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        print(e)
                 else:
                     try:
                         with open("/var/www/GWT/gwt-ticker/stock_ticker.gif", "rb") as fp:
