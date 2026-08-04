@@ -435,7 +435,7 @@ class Tasks(commands.Cog):
 
     @tasks.loop(hours=3)
     async def leaderboard_loop(self):
-        msg = gen_mo4_progress()
+        msg, _ = gen_mo4_progress()
         if msg is None:
             return
         try:
