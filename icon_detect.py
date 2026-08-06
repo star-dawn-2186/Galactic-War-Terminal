@@ -56,38 +56,42 @@ def detect_helldiver_icon(image_path):
     for t in mission_template_paths:
         mission_templates[t.split('/')[-1][:-17]] = cv2.imread(t, 0)
 
-    lower_cyan = np.array([190, 190, 70])   
-    upper_cyan = np.array([255, 255, 150]) 
+    lower_cyan = np.array([190, 190, 90])   
+    upper_cyan = np.array([255, 255, 180]) 
     lower_orange = np.array([0, 100, 215])
     upper_orange = np.array([80, 170, 255])
     
     mask = cv2.inRange(to_img, lower_cyan, upper_cyan)
     mask2 = cv2.inRange(obj_img, lower_orange, upper_orange)
-    cv2.imwrite('mask.png', mask)    
-    cv2.imwrite('orange_mask.png', mask2)
+    # cv2.imwrite('mask.png', mask)    
+    # cv2.imwrite('orange_mask.png', mask2)
     
-    
-    kernel = np.ones((7, 7), np.uint8)
+    kernel_size = 10
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
     dilated = cv2.dilate(mask, kernel, iterations=1)
     orange_dilated = cv2.dilate(mask2, kernel, iterations=1)
     contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     obj_contours, _ = cv2.findContours(orange_dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     boxes = []
-
+    iconsize = 20
+    
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
-        if w > 5 and h > 5:
+        if w > iconsize and h > iconsize:
             boxes.append((x, y, w, h))    
     matches = {}
     for name, _ in templates.items():
         matches[name] = 0
+    i = 0
     for box in boxes:
         x, y, w, h = box
         icon = mask[y:y+h, x:x+w]
         points = cv2.findNonZero(icon)
         x2, y2, w2, h2 = cv2.boundingRect(points)
         icon = icon[y2:y2+h2, x2:x2+w2]
+        # cv2.imwrite(f'icon_test/icon_{i}.png', icon)
+        i += 1
         
         scores = {}
         for name in templates:
@@ -104,7 +108,7 @@ def detect_helldiver_icon(image_path):
             iou_score = np.sum(intersection) / np.sum(union)
             
             scores[name] = iou_score
-        print(scores)
+        # print(scores)
        
         most_likely_match = max(scores, key=scores.get)
         matches[most_likely_match] += 1
@@ -114,7 +118,7 @@ def detect_helldiver_icon(image_path):
 
     for cnt in obj_contours:
         x, y, w, h = cv2.boundingRect(cnt)
-        if w > 5 and h > 5:
+        if w > iconsize and h > iconsize:
             boxes.append((x, y, w, h))    
     obj_matches = {}
     for name, _ in mission_templates.items():
@@ -154,10 +158,10 @@ def init_templates():
     filenames = os.listdir(svg_path)
     for filename in filenames:
         path = os.path.join(svg_path, filename)
-        print(path)
+        # print(path)
         prepare_svg_template(path)
 
 if __name__ == '__main__':
     # init_templates()
-    matches = detect_helldiver_icon("image.png")
+    matches = detect_helldiver_icon("image2.jpg")
     print(matches)

@@ -12,7 +12,7 @@ def process_img(imgpath, quality=75):
             img = img.convert('L')
             width, height = img.size
             upper = int(height * 0.27)
-            lower = int(height * 0.8)
+            lower = int(height * 0.9)
             stats_img = img.crop((0, upper, width, lower))
             
             contrast_enhancer = ImageEnhance.Contrast(stats_img)
