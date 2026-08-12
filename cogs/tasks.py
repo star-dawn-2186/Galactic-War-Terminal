@@ -11,6 +11,7 @@ from concurrent.futures import ProcessPoolExecutor
 
 import aiohttp
 import discord
+import requests
 from discord.ext import commands, tasks
 from tabulate import tabulate
 
@@ -110,9 +111,9 @@ class Tasks(commands.Cog):
 
     @tasks.loop(minutes=1)
     async def alert_loop(self):
-        api = await api_data()
-        planets = await planet_data()
-        warinfo = await warinfo_data()
+        api = api_data()
+        planets = planet_data()
+        warinfo = warinfo_data()
         new_regions = await update_librate(mode='r')
         if None in [api, planets, warinfo]:
             return
@@ -337,11 +338,11 @@ class Tasks(commands.Cog):
         while not success:
             try:
                 _ = await update_librate(mode='p')
-                api = await api_data()
-                planets = await planet_data()
-                warinfo = await warinfo_data()
+                api = api_data()
+                planets = planet_data()
+                warinfo = warinfo_data()
                 success = True
-            except aiohttp.ClientError:
+            except (aiohttp.ClientError, requests.RequestException):
                 await asyncio.sleep(1)
 
         if None in [api, planets, warinfo]:

@@ -17,8 +17,8 @@ r_FILENAME = os.path.join(LIBERATION_DIR, "region_health.json")
 # omg thank you past joe i had no fucking clue what you wrote
 
 async def update_librate(p_filename=p_FILENAME, r_filename = r_FILENAME, mode='both'):
-    status = await api_data()
-    warinfo = await warinfo_data()
+    status = api_data()
+    warinfo = warinfo_data()
     
     if None in [status, warinfo]:
         print("api error")
@@ -128,7 +128,7 @@ async def update_librate(p_filename=p_FILENAME, r_filename = r_FILENAME, mode='b
     return new_regions
 
 async def init_savedhealth(filename=p_FILENAME, mode = 'p'):
-    status = await api_data()
+    status = api_data()
     if status is None:
         return
     if mode == 'p':

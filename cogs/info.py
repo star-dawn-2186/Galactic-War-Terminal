@@ -36,7 +36,7 @@ class Info(commands.Cog):
     @commands.command(name='dss_vote')
     @commands.dynamic_cooldown(custom_cooldown, commands.BucketType.user)
     async def dss_voting_command(self, ctx):
-        api = await api_data()
+        api = api_data()
         if api is None:
             return await send_error_msg(ctx)
         secret = ctx.channel.id in [LOUNGE_CHANNEL, LAB_CHANNEL]
@@ -102,6 +102,8 @@ class Info(commands.Cog):
             return await ctx.reply("Unable to find planet.")
         static, names, name = stats
         idx = static['id']
+        # Avery ARG Special
+        arg = idx == 227
 
         has_region = static['has regions']
         environmentals = static['environmentals']
@@ -195,8 +197,10 @@ class Info(commands.Cog):
         msg += "### Planet Effects:\n - "
         if effects == []:
             msg += "No current effects detected.\n"
-        else:
+        elif not arg:
             msg += '\n - '.join(effects) + '\n'
+        else:
+            msg += '\n - 1BjbsgTJu_HXB7hZbKYn5MIJZsJais94Svv7G8gxqUok\n'
         if score is not None:
             msg += f"### Holistic Overall Reallocation Sequence Evaluator (H.O.R.S.E.) score:\n{round(score * 100, 1)}"
         else:
@@ -266,7 +270,7 @@ class Info(commands.Cog):
         with open('ADVISORY.txt', 'r') as f:
             advisory = f.read()
 
-        api = await api_data()
+        api = api_data()
         if api is None:
             return await send_error_msg(ctx)
 
@@ -279,7 +283,7 @@ class Info(commands.Cog):
     @commands.command(name='ddl')
     @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
     async def ddl(self, ctx):
-        api = await api_data()
+        api = api_data()
         mo_data = MO_data()
         if None in [api, mo_data]:
             return await send_error_msg(ctx)

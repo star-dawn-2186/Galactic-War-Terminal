@@ -74,7 +74,7 @@ def detect_helldiver_icon(image_path):
     obj_contours, _ = cv2.findContours(orange_dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     boxes = []
-    iconsize = 20
+    iconsize = 30
     
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
@@ -163,5 +163,5 @@ def init_templates():
 
 if __name__ == '__main__':
     # init_templates()
-    matches = detect_helldiver_icon("image2.jpg")
+    matches = detect_helldiver_icon("image.jpg")
     print(matches)

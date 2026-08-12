@@ -6,7 +6,7 @@ async def get_dss_info(dss_json):
     planet_id = dss_json['planetIndex']
     _, planet = name_to_idx(planet_id)
     planet = planet.upper()
-    api = await api_data()
+    api = api_data()
     vote_ddl = convert_time(dss_json['currentElectionEndWarTime'], api)
     
     actions = dss_json['tacticalActions']

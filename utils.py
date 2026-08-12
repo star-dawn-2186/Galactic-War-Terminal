@@ -18,6 +18,21 @@ MO_link = "https://api.live.prod.thehelldiversgame.com/api/v2/Assignment/War/801
 dss_vote_link = 'https://redivivus-nixon-uncomplicated.ngrok-free.dev/election/'
 dss_donation_link = 'https://api.live.prod.thehelldiversgame.com/api/SpaceStation/801/749875195'
 
+BROWSER_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Connection': 'keep-alive',
+    'Upgrade-Insecure-Requests': '1',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Sec-Fetch-User': '?1',
+    'DNT': '1',
+    'Sec-GPC': '1',
+    'Priority': 'u=0, i'
+    }
+
 _session = None
 
 async def get_session():
@@ -43,36 +58,22 @@ async def fetch_json(url):
 
 
 async def fetch_war_data():
-    """Fetch api, planets, warinfo in parallel. Returns (api, planets, warinfo) or None."""
-    api, planets, warinfo = await asyncio.gather(api_data(), planet_data(), warinfo_data())
+    """Fetch api, planets, warinfo. Returns (api, planets, warinfo) or None."""
+    api, planets, warinfo = api_data(), planet_data(), warinfo_data()
     if None in (api, planets, warinfo):
         return None
     return api, planets, warinfo
 
-async def api_data():
-    return await fetch_json(status_link)
-async def warinfo_data():
-    return await fetch_json(warinfo_link)
-async def planet_data():
-    return await fetch_json(planet_link)
+def api_data():
+    return requests.get(status_link, headers=BROWSER_HEADERS).json()
+def warinfo_data():
+    return requests.get(warinfo_link, headers=BROWSER_HEADERS).json()
+def planet_data():
+    return requests.get(planet_link, headers=BROWSER_HEADERS).json()
 async def campaign_data():
     return await fetch_json(campaign_link)
 def dss_donation_data():
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'DNT': '1',
-        'Sec-GPC': '1',
-        'Priority': 'u=0, i'
-        }
-    response = requests.get(dss_donation_link, headers=headers)
+    response = requests.get(dss_donation_link, headers=BROWSER_HEADERS)
     return response.json()
 
 def MO_data():
@@ -206,7 +207,7 @@ def format_gambitcalc(result):
     return msg
 
 async def fetch_im():
-    api = await api_data()
+    api = api_data()
     if api is None: return None
     return api.get('impactMultiplier')
 

@@ -7,9 +7,9 @@ from utils import api_data, planet_data, warinfo_data
 from find_planets import name_to_idx, get_regions_by_name
 import asyncio
 async def get_locations():
-    api = await api_data()
-    planet = await planet_data()
-    warinfo = await warinfo_data()
+    api = api_data()
+    planet = planet_data()
+    warinfo = warinfo_data()
     if None in [api, planet, warinfo]:
         return None
     campaigns = api.get('campaigns')
