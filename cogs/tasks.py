@@ -121,6 +121,8 @@ class Tasks(commands.Cog):
         decays = {}
         subfactions = {}
         for idx in range(len(api.get('planetStatus'))):
+            if int(idx) == 274:
+                continue
             subfactions[str(idx)] = []
 
             effects, _ = get_effects_by_idx(api, idx)

@@ -103,7 +103,7 @@ def name_to_idx(name):
     idx = -1
     try:
         idx = int(name)
-        if idx in [263, 264, 265]:
+        if idx in [263, 264, 265, 274]:
             return idx, None
         try:
             name = planet_names[str(idx)]

@@ -200,7 +200,7 @@ class Info(commands.Cog):
         elif not arg:
             msg += '\n - '.join(effects) + '\n'
         else:
-            msg += '\n - 1BjbsgTJu_HXB7hZbKYn5MIJZsJais94Svv7G8gxqUok\n'
+            msg += '1BjbsgTJu_HXB7hZbKYn5MIJZsJais94Svv7G8gxqUok\n'
         if score is not None:
             msg += f"### Holistic Overall Reallocation Sequence Evaluator (H.O.R.S.E.) score:\n{round(score * 100, 1)}"
         else:

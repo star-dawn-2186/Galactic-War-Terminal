@@ -109,15 +109,16 @@ async def update_librate(p_filename=p_FILENAME, r_filename = r_FILENAME, mode='b
             if rID not in regiondict:
                 new_regions.append(rID)
                 regiondict[rID] = [health, 0, 0, 0]
-            prev_health = regiondict[rID][0]
-            delta_health = prev_health - health
-            healthp = delta_health / maxhealth * 100
-            if delta_health > 0.9 * maxhealth:
-                librate = 0
-                delta_health = 0
             else:
-                librate = round(healthp / (60 / 3600),2)
-            regiondict[rID] = [health, librate, delta_health, players]
+                prev_health = regiondict[rID][0]
+                delta_health = prev_health - health
+                healthp = delta_health / maxhealth * 100
+                if delta_health > 0.9 * maxhealth:
+                    librate = 0
+                    delta_health = 0
+                else:
+                    librate = round(healthp / (60 / 3600),2)
+                regiondict[rID] = [health, librate, delta_health, players]
         
     
         with open(r_filename, 'w') as f:
