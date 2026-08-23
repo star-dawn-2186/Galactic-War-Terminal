@@ -103,7 +103,9 @@ class Info(commands.Cog):
         static, names, name = stats
         idx = static['id']
         # Avery ARG Special
-        arg = idx == 227
+        # arg = idx == 227
+        arg = False
+        
 
         has_region = static['has regions']
         environmentals = static['environmentals']

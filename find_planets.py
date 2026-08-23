@@ -103,8 +103,8 @@ def name_to_idx(name):
     idx = -1
     try:
         idx = int(name)
-        if idx in [263, 264, 265, 274]:
-            return idx, None
+        if idx == 263:
+            return None, None
         try:
             name = planet_names[str(idx)]
         except:
@@ -161,6 +161,12 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name_in):
     if idx is None:
         print(f"{name_in}: name or idx not found")
         return None
+    
+    # Arrowhead switcharoo
+    if idx == 273:
+        idx = 99
+    elif idx == 99:
+        idx = 273
     
     total_players = 0    
     factions = ["","Human", "Terminid", "Automaton", "Illuminate"]    
@@ -230,8 +236,9 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name_in):
     
     try:
         names = planet_info[str(idx)]['names']
-        localized_names = ' // '.join([names['en-US'], names['es-ES'], names['fr-FR'], names['ru-RU'], names['zh-Hans']])
-    except:
+        localized_names = ' // '.join([names['en-US'], names['es-ES'], names['fr-FR'], names['ru-RU'], names['zh-Hant']])
+    except Exception as e:
+        print(e)
         localized_names = "N/A"
         
     if name == '':

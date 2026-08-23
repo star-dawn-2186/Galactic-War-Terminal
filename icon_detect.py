@@ -17,14 +17,14 @@ def prepare_svg_template(svg_file_path, scale=5.0):
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         _, binary_template = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
     
-
+    binary_template = cv2.bitwise_not(binary_template)
     
     points = cv2.findNonZero(binary_template)
     x, y, w, h = cv2.boundingRect(points)
     cropped = binary_template[y:y+h, x:x+w]
 
     filename = svg_file_path.split('\\')[-1].replace('svg', 'png')
-    output_path = os.path.join('templates',filename)
+    output_path = os.path.join('mission_templates',filename)
     cv2.imwrite(output_path, cropped)
     print(f"Template saved to {output_path}")
     
@@ -154,7 +154,7 @@ def detect_helldiver_icon(image_path):
     return matches, obj_matches
 
 def init_templates():
-    svg_path = 'original_icons'
+    svg_path = 'mission_icons'
     filenames = os.listdir(svg_path)
     for filename in filenames:
         path = os.path.join(svg_path, filename)
@@ -162,6 +162,6 @@ def init_templates():
         prepare_svg_template(path)
 
 if __name__ == '__main__':
-    # init_templates()
-    matches = detect_helldiver_icon("image.jpg")
-    print(matches)
+    init_templates()
+    # matches = detect_helldiver_icon("image.jpg")
+    # print(matches)

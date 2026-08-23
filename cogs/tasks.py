@@ -132,7 +132,7 @@ class Tasks(commands.Cog):
                     decays[idx] = stats['decay']
 
                 for effect in effects:
-                    for sub in ['CORPS', 'JET', 'STRAIN', 'CYBORG', 'Appropriator', 'Mindless Mass', 'DRAGONROACH', 'HIVE LORD']:
+                    for sub in ['CORPS', 'JET', 'STRAIN', 'CYBORG', 'Appropriator', 'Mindless Mass', 'DRAGONROACH', 'HIVE LORD', 'VOTE SNATCHERS']:
                         if sub.lower() in effect.lower() and effect.lower() != "jet brigade factories":
                             subfactions[str(idx)].append(effect)
             except Exception:

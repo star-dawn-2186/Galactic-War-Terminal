@@ -26,13 +26,13 @@ def _read_counter(filepath):
 def build_leaderboard(logs):
     entries = []
     for player, stats in logs.items():
-        melee_vals = [
-            int(v) for v in stats.get('MELEE KILLS', []) if v != 'N/A'
+        kill_vals = [
+            int(v) for v in stats.get('KILLS', []) if v != 'N/A'
         ]
-        if not melee_vals:
+        if not kill_vals:
             continue
-        total = sum(melee_vals)
-        missions = len(melee_vals)
+        total = sum(kill_vals)
+        missions = len(kill_vals)
         avg = total / missions
         entries.append((player, total, avg, missions))
     entries.sort(key=lambda x: x[1], reverse=True)
@@ -49,61 +49,69 @@ def gen_mo4_progress():
         with open(os.path.join(EVENTS_DIR, 'event_to.json'), 'r') as f:
             TO_LOGS = json.load(f)
 
-        goal = 300
-
-        count_broadcast, count_convoy, count_flag, count_mortar = 0,0,0,0
+        count_hivelord, count_sporelung, count_extraction = 0, 0, 0
+        count_gazerspire, count_disruptor = 0, 0
         for player in TO_LOGS:
-            count_broadcast += TO_LOGS[player].get('Terminate_Illegal_Broadcast', 0)
-            count_convoy += TO_LOGS[player].get('Intercept_Convoy', 0)
-            count_flag += TO_LOGS[player].get('Spread_Democracy', 0)
-            count_mortar += TO_LOGS[player].get('Mortar_Emplacement', 0)
+            count_hivelord += TO_LOGS[player].get('Hive_Lord', 0)
+            count_sporelung += TO_LOGS[player].get('Destroy_Spore_Lung', 0)
+            count_extraction += TO_LOGS[player].get('Conduct_Mobile_E-711_Extraction', 0)
+            count_gazerspire += TO_LOGS[player].get('Destroy_Gazer_Spire', 0)
+            count_disruptor += TO_LOGS[player].get('Cognitive_Disruptor', 0)
 
+        total_kills = _read_counter(os.path.join(EVENTS_DIR, 'kills.txt'))
+        goal_kills = 180000
 
-        to_met = all([count >= goal for count in [count_mortar, count_flag, count_convoy, count_broadcast]])
-
-        to_state = 'Ongoing'
-        if time.time() >= mo4_ddl:
-            to_state = 'Success' if to_met else 'Failure'
-
-        sections.append(
-            f"## MO4: {to_state}\nEnds: <t:{mo4_ddl}:R>\n- Illegal Broadcasts terminated: **{count_broadcast}**/{goal}\n- Convoys Intercepted: **{count_convoy}**/{goal}\n- Flags raised: **{count_flag}**/{goal}\n- Mortar Emplacements destroyed: **{count_mortar}**/{goal}\n"
+        mo4_met = (
+            total_kills >= goal_kills
+            and count_hivelord >= 1000
+            and count_sporelung >= 1000
+            and count_extraction >= 300
         )
 
-        if to_state != 'Ongoing':
+        mo4_state = 'Ongoing'
+        if time.time() >= mo4_ddl:
+            mo4_state = 'Success' if mo4_met else 'Failure'
+
+        sections.append(
+            f"## MO4: {mo4_state}\n"
+            f"Ends: <t:{mo4_ddl}:R>\n"
+            f"- Terminid Kills: **{total_kills}**/{goal_kills}\n"
+            f"- Hive Lords killed: **{count_hivelord}**/1,000\n"
+            f"- Spore Lungs destroyed: **{count_sporelung}**/1,000\n"
+            f"- Mobile E-711 Extractions conducted: **{count_extraction}**/300\n"
+        )
+
+        so4_met = count_gazerspire >= 80 and count_disruptor >= 80
+
+        so4_state = 'Ongoing'
+        if time.time() >= mo4_ddl:
+            so4_state = 'Success' if so4_met else 'Failure'
+
+        # sections.append(
+        #     f"## SO4: {so4_state}\n"
+        #     f"Ends: <t:{mo4_ddl}:R>\n"
+        #     f"- Gazer Spire destroyed: **{count_gazerspire}**/80\n"
+        #     f"- Cognitive Disruptors destroyed: **{count_disruptor}**/80"
+        # )
+
+        if mo4_state != 'Ongoing':
             os.rename(
                 os.path.join(EVENTS_DIR, 'event_to.json'),
-                os.path.join(EVENTS_DIR, f'm04_14_{to_state.lower()}_to.json')
+                os.path.join(EVENTS_DIR, f'm04_15_{mo4_state.lower()}_to.json')
             )
+            os.rename(
+                os.path.join(EVENTS_DIR, 'event.json'),
+                os.path.join(EVENTS_DIR, f'm04_15_{mo4_state.lower()}.json')
+            )
+
             
             
-    # --- Stats-based objectives (event.json) ---
+    # --- Leaderboard ---
     if os.path.isfile(os.path.join(EVENTS_DIR, 'event.json')):
         with open(os.path.join(EVENTS_DIR, 'event.json'), 'r') as f:
             LOGS = json.load(f)
 
-        total_samples = _read_counter(os.path.join(EVENTS_DIR, 'samples.txt'))
-        total_melee = _read_counter(os.path.join(EVENTS_DIR, 'melee.txt'))
-
-        goal_melee = 5000
-        goal_samples = 2500
-
-        objectives_met = (
-            total_melee >= goal_melee
-            and total_samples >= goal_samples
-        )
-
-        state = 'Ongoing'
-        if time.time() >= mo4_ddl:
-            state = 'Success' if objectives_met else 'Failure'
-
-        sections.append(
-            f"## SO4: {state}\n"
-            f"Ends: <t:{mo4_ddl}:R>\n"
-            f"- Melee Kills: **{total_melee}**/{goal_melee}\n"
-            f"- Samples Extracted: **{total_samples}**/{goal_samples}"
-        )
-
-        # --- Melee Kills Leaderboard ---
+        # --- Kills Leaderboard ---
         leaderboard = build_leaderboard(LOGS)
         if leaderboard:
             table_data = [
@@ -112,16 +120,10 @@ def gen_mo4_progress():
             ]
             table = tabulate(
                 table_data,
-                headers=['Player', 'Melee Kills', 'Avg/Mission'],
+                headers=['Player', 'Kills', 'Avg/Mission'],
                 tablefmt='plain'
             )
             sections.append(f"```{table}```")
-
-        if state != 'Ongoing':
-            os.rename(
-                os.path.join(EVENTS_DIR, 'event.json'),
-                os.path.join(EVENTS_DIR, f'm04_14_{state.lower()}.json')
-            )
 
     if not sections:
         return None, []
@@ -150,7 +152,7 @@ class Events(commands.Cog):
             table_data = [(rank, player_entry[1], f"{player_entry[2]:.1f}")]
             table = tabulate(
                 table_data,
-                headers=['Rank', 'Melee Kills', 'Avg/Mission'],
+                headers=['Rank', 'Kills', 'Avg/Mission'],
                 tablefmt='plain'
             )
             msg += f"\n### Your stats:\n```\n{table}\n```"
@@ -175,7 +177,7 @@ class Events(commands.Cog):
             return await ctx.reply("TO Event initiated.")
         with open(os.path.join(EVENTS_DIR, 'event.json'), 'w') as f:
             json.dump(init_json, f)
-        for counter in ('samples.txt', 'melee.txt'):
+        for counter in ('kills.txt',):
             with open(os.path.join(EVENTS_DIR, counter), 'w') as f:
                 f.write('0')
         return await ctx.reply("Event initiated.")
@@ -268,11 +270,8 @@ class Events(commands.Cog):
         for stat in stats:
             player_stats[stat] = stats[stat][idx]
 
-        samples = int(sum([int(i) for i in stats['SAMPLES EXTRACTED'] if i != 'N/A']))
-        increment_counter_file(os.path.join(EVENTS_DIR, 'samples.txt'), samples)
-
-        melee = int(sum([int(i) for i in stats['MELEE KILLS'] if i != 'N/A']))
-        increment_counter_file(os.path.join(EVENTS_DIR, 'melee.txt'), melee)
+        kills = int(sum([int(i) for i in stats['KILLS'] if i != 'N/A']))
+        increment_counter_file(os.path.join(EVENTS_DIR, 'kills.txt'), kills)
 
         with open(os.path.join(EVENTS_DIR, 'event.json'), 'r') as f:
             LOGS = json.load(f)
