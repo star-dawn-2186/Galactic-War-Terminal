@@ -41,7 +41,7 @@ def build_leaderboard(logs):
 
 def gen_mo4_progress():
 
-    mo4_ddl = 1786102529
+    mo4_ddl = 1787731320
     sections = []
     leaderboard = []
     # --- TO-based objectives (event_to.json) ---
@@ -87,12 +87,12 @@ def gen_mo4_progress():
         if time.time() >= mo4_ddl:
             so4_state = 'Success' if so4_met else 'Failure'
 
-        # sections.append(
-        #     f"## SO4: {so4_state}\n"
-        #     f"Ends: <t:{mo4_ddl}:R>\n"
-        #     f"- Gazer Spire destroyed: **{count_gazerspire}**/80\n"
-        #     f"- Cognitive Disruptors destroyed: **{count_disruptor}**/80"
-        # )
+        sections.append(
+            f"## SO4: {so4_state}\n"
+            f"Ends: <t:{mo4_ddl}:R>\n"
+            f"- Gazer Spire destroyed: **{count_gazerspire}**/80\n"
+            f"- Cognitive Disruptors destroyed: **{count_disruptor}**/80"
+        )
 
         if mo4_state != 'Ongoing':
             os.rename(

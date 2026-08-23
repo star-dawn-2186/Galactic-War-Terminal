@@ -69,6 +69,7 @@ def detect_helldiver_icon(image_path):
     kernel_size = 10
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
     dilated = cv2.dilate(mask, kernel, iterations=1)
+
     orange_dilated = cv2.dilate(mask2, kernel, iterations=1)
     contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     obj_contours, _ = cv2.findContours(orange_dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -78,7 +79,7 @@ def detect_helldiver_icon(image_path):
     
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
-        if w > iconsize and h > iconsize:
+        if w > iconsize // 1.5 and h > iconsize:
             boxes.append((x, y, w, h))    
     matches = {}
     for name, _ in templates.items():
@@ -162,6 +163,6 @@ def init_templates():
         prepare_svg_template(path)
 
 if __name__ == '__main__':
-    init_templates()
-    # matches = detect_helldiver_icon("image.jpg")
-    # print(matches)
+    # init_templates()
+    matches = detect_helldiver_icon("image.png")
+    print(matches)

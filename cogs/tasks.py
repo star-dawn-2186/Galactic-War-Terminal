@@ -132,7 +132,7 @@ class Tasks(commands.Cog):
                     decays[idx] = stats['decay']
 
                 for effect in effects:
-                    for sub in ['CORPS', 'JET', 'STRAIN', 'CYBORG', 'Appropriator', 'Mindless Mass', 'DRAGONROACH', 'HIVE LORD', 'VOTE SNATCHERS']:
+                    for sub in ['CORPS', 'JET', 'STRAIN', 'CYBORG', 'Appropriator', 'Mindless Mass', 'DRAGONROACH', 'HIVE LORD', 'VOTE SNATCHERS', 'INVASION FLEET']:
                         if sub.lower() in effect.lower() and effect.lower() != "jet brigade factories":
                             subfactions[str(idx)].append(effect)
             except Exception:
@@ -164,7 +164,10 @@ class Tasks(commands.Cog):
         for defense in defenses:
             if str(defense['planetIndex']) not in prev_defenses:
                 idx, name = name_to_idx(defense['planetIndex'])
-                stats, _, _ = get_stats_by_name(api, planets, warinfo, name)
+                try:
+                    stats, _, _ = get_stats_by_name(api, planets, warinfo, name)
+                except:
+                    continue
                 faction = stats['faction']
                 effects = get_effects_by_idx(api, idx)[0]
 
@@ -199,7 +202,10 @@ class Tasks(commands.Cog):
         msg = "!!=== PRIORITY ALERT: ENEMY MOVEMENT ===!!\n"
         for idx in subfactions:
             _, name = name_to_idx(int(idx))
-            stats, _, _ = get_stats_by_name(api, planets, warinfo, idx)
+            try:
+                stats, _, _ = get_stats_by_name(api, planets, warinfo, idx)
+            except:
+                continue
             if stats['campaign'] != "Already liberated":
                 for sub in subfactions[idx]:
                     try:
