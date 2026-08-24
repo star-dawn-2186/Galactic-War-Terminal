@@ -52,7 +52,7 @@ class Admin(commands.Cog):
 
     @commands.command(name="kill")
     async def kill_command(self, ctx):
-        if ctx.author.id == OWNER_ID:
+        if ctx.author.id == OWNER_ID: # because some idiot's gonna try and kill it
             await ctx.reply("Powering down.")
             sys.exit()
 

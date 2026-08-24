@@ -50,12 +50,13 @@ def gen_mo4_progress():
             TO_LOGS = json.load(f)
 
         count_hivelord, count_sporelung, count_extraction = 0, 0, 0
-        count_gazerspire, count_disruptor = 0, 0
+        count_detectortower, count_disruptor = 0, 0
         for player in TO_LOGS:
             count_hivelord += TO_LOGS[player].get('Hive_Lord', 0)
             count_sporelung += TO_LOGS[player].get('Destroy_Spore_Lung', 0)
             count_extraction += TO_LOGS[player].get('Conduct_Mobile_E-711_Extraction', 0)
-            count_gazerspire += TO_LOGS[player].get('Destroy_Gazer_Spire', 0)
+            count_detectortower += TO_LOGS[player].get('Destroy_Gazer_Spire', 0)
+            count_detectortower += TO_LOGS[player].get('Detector_Tower', 0)
             count_disruptor += TO_LOGS[player].get('Cognitive_Disruptor', 0)
 
         total_kills = _read_counter(os.path.join(EVENTS_DIR, 'kills.txt'))
@@ -81,7 +82,7 @@ def gen_mo4_progress():
             f"- Mobile E-711 Extractions conducted: **{count_extraction}**/300\n"
         )
 
-        so4_met = count_gazerspire >= 80 and count_disruptor >= 80
+        so4_met = count_detectortower >= 80 and count_disruptor >= 80
 
         so4_state = 'Ongoing'
         if time.time() >= mo4_ddl:
@@ -90,7 +91,7 @@ def gen_mo4_progress():
         sections.append(
             f"## SO4: {so4_state}\n"
             f"Ends: <t:{mo4_ddl}:R>\n"
-            f"- Gazer Spire destroyed: **{count_gazerspire}**/80\n"
+            f"- Gazer Spires or Detector Towers destroyed: **{count_detectortower}**/80\n"
             f"- Cognitive Disruptors destroyed: **{count_disruptor}**/80"
         )
 

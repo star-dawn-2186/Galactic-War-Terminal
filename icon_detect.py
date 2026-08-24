@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 import os
+import json
+from ocr import process_img, ocr_space_file
 
 def prepare_svg_template(svg_file_path, scale=5.0):
     import cairosvg
@@ -31,15 +33,29 @@ def prepare_svg_template(svg_file_path, scale=5.0):
     return binary_template
 
 
-def detect_helldiver_icon(image_path):
+def detect_helldiver_icon(image_path, debug = False):
     img = cv2.imread(image_path)
+    
+    process_img(image_path)
+    imgname = image_path.split('.')[0]
+    hivelord_path = imgname + '_processed.jpeg'
+    try:
+        stats = json.loads(ocr_space_file(hivelord_path))
+        txt = stats['ParsedResults'][0]['ParsedText']
+        if 'HIGH-VALUE TARGET DESTROYED' in txt or 'Killed Hive Lord' in txt:
+            os.remove(hivelord_path)
+            return {}, {'Hive_Lord': 1}
+    except KeyError:
+        pass
+    
+    
     height, width = img.shape[:2]
     upper = int(height * 0.35)
     lower = int(height * 0.65)
     upper2 = int(height * 0.2)
     lower2 = int(height * 0.5)
-    left = int(width * 0.37)
-    right = int(width * 0.62)
+    left = int(width * 0.4)
+    right = int(width * 0.6)
     
     to_img = img[upper:lower, left:right]
     obj_img = img[upper2:lower2, left:right]
@@ -59,12 +75,13 @@ def detect_helldiver_icon(image_path):
     lower_cyan = np.array([190, 190, 90])   
     upper_cyan = np.array([255, 255, 180]) 
     lower_orange = np.array([0, 100, 215])
-    upper_orange = np.array([80, 170, 255])
+    upper_orange = np.array([100, 170, 255])
     
     mask = cv2.inRange(to_img, lower_cyan, upper_cyan)
     mask2 = cv2.inRange(obj_img, lower_orange, upper_orange)
-    # cv2.imwrite('mask.png', mask)    
-    # cv2.imwrite('orange_mask.png', mask2)
+    if debug:
+        cv2.imwrite('mask.png', mask)    
+        cv2.imwrite('orange_mask.png', mask2)
     
     kernel_size = 10
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
@@ -91,7 +108,8 @@ def detect_helldiver_icon(image_path):
         points = cv2.findNonZero(icon)
         x2, y2, w2, h2 = cv2.boundingRect(points)
         icon = icon[y2:y2+h2, x2:x2+w2]
-        # cv2.imwrite(f'icon_test/icon_{i}.png', icon)
+        if debug:
+            cv2.imwrite(f'icon_test/icon_{i}.png', icon)
         i += 1
         
         scores = {}
@@ -109,7 +127,8 @@ def detect_helldiver_icon(image_path):
             iou_score = np.sum(intersection) / np.sum(union)
             
             scores[name] = iou_score
-        # print(scores)
+        if debug:
+            print(scores)
        
         most_likely_match = max(scores, key=scores.get)
         matches[most_likely_match] += 1
@@ -151,7 +170,8 @@ def detect_helldiver_icon(image_path):
             continue
         obj_matches[most_likely_match] += 1
     obj_matches = {k: v for k, v in obj_matches.items() if v != 0}
-    os.remove(image_path)
+    if not debug:
+        os.remove(image_path)
     return matches, obj_matches
 
 def init_templates():
@@ -164,5 +184,5 @@ def init_templates():
 
 if __name__ == '__main__':
     # init_templates()
-    matches = detect_helldiver_icon("image.png")
+    matches = detect_helldiver_icon("202E5D1.JPG", debug = True)
     print(matches)
