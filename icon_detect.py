@@ -184,5 +184,5 @@ def init_templates():
 
 if __name__ == '__main__':
     # init_templates()
-    matches = detect_helldiver_icon("202E5D1.JPG", debug = True)
+    matches = detect_helldiver_icon("image.png", debug = True)
     print(matches)

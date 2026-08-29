@@ -49,12 +49,14 @@ def is_num(s):
     num = s.replace('%','').replace(',','').replace('.','')
     return num.isdigit()
     
-def img_to_stats(imgpath):
+def img_to_stats(imgpath, debug = False):
     process_img(imgpath)
     imgname = imgpath.split('.')[0]
     stats_path = imgname + '_processed.jpeg'
     stats = json.loads(ocr_space_file(stats_path))
     txt = stats['ParsedResults'][0]['ParsedText'].split('\n')
+    if debug:
+        print(txt)
 
     stats = {}
     for line in txt:
@@ -80,9 +82,10 @@ def img_to_stats(imgpath):
                 else:
                     values.append(int(num))
         stats[stat_name] = values
-        
-    os.remove(imgpath)
-    os.remove(stats_path)
+    
+    if not debug:
+        os.remove(imgpath)
+        os.remove(stats_path)
     return stats
         
 def summary_from_stats(stats):
