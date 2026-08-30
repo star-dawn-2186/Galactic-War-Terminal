@@ -34,6 +34,7 @@ from libcalc import get_librate_from_idx, update_librate, UPDATE_INTERVAL
 from effcalc import calc_region_eff_from_name
 from ticker import create_stock_ticker_gif
 from cogs.events import gen_mo4_progress
+from scripts.sync_hdc_styles import check as hdc_check, sync as hdc_sync, CSS_DIR as HDC_CSS_DIR
 
 process_executor = ProcessPoolExecutor(max_workers=1)
 
@@ -53,6 +54,7 @@ class Tasks(commands.Cog):
         self.mo_loop.cancel()
         self.mo_archive_loop.cancel()
         self.leaderboard_loop.cancel()
+        self.style_sync_loop.cancel()
 
     # ====================
     # Event Handlers
@@ -66,6 +68,8 @@ class Tasks(commands.Cog):
         self.reminder_loop.start()
         self.leaderboard_loop.start()
         self.mo_loop.start()
+        if not self.style_sync_loop.is_running():
+            self.style_sync_loop.start()
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread):
@@ -459,6 +463,26 @@ class Tasks(commands.Cog):
             except Exception:
                 pass
         await channel.send(msg)
+
+    # ====================
+    # Stylesheet Mirror Sync
+    # ====================
+
+    @tasks.loop(hours=24)
+    async def style_sync_loop(self):
+        """Keep the local helldiverscompanion.com stylesheet mirror fresh."""
+        try:
+            stale = await self.bot.loop.run_in_executor(process_executor, hdc_check)
+            if stale == 0:
+                return
+            await self.bot.loop.run_in_executor(process_executor, hdc_sync)
+            print(f"Refreshed helldiverscompanion.com stylesheet mirror ({len(list(HDC_CSS_DIR.glob('*.css')))} files)")
+        except Exception as e:
+            print(f"Stylesheet mirror sync failed: {e}")
+
+    @style_sync_loop.before_loop
+    async def before_style_sync_loop(self):
+        await self.bot.wait_until_ready()
 
 
 async def setup(bot):
