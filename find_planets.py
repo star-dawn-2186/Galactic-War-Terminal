@@ -167,19 +167,25 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name_in):
         idx = 99
     elif idx == 99:
         idx = 273
+
+        
+    
     
     total_players = 0    
     factions = ["","Human", "Terminid", "Automaton", "Illuminate"]    
     warinfo = warinfo_data.get('planetInfos')
     
-    pop = api_data.get('planetStatus')[int(idx)]['players']
+    planet_status = next((p for p in api_data.get('planetStatus') if p.get('index') == idx), None)
+    planet_warinfo = next((p for p in warinfo if p.get('index') == idx), None)
+    
+    pop = planet_status['players']
     for planet in api_data.get('planetStatus'):
         total_players += planet['players']
     pop = round(pop / total_players * 100)
     
     campaign = get_campaign_for_planet(api_data, idx)
     if campaign == None:
-        if api_data.get('planetStatus')[int(idx)]['owner'] == 1:
+        if planet_status['owner'] == 1:
             campaign_type = "Already liberated"
         else:
             campaign_type = "Currently unreachable"
@@ -211,14 +217,15 @@ def get_stats_by_name(api_data, planet_data, warinfo_data, name_in):
 
         
     if not flag:
-        faction = factions[api_data.get('planetStatus')[int(idx)]['owner']]  
-        regen = api_data.get('planetStatus')[int(idx)]['regenPerSecond']
-        health = api_data.get('planetStatus')[int(idx)]['health']
-        maxhealth = warinfo[int(idx)]['maxHealth']
+        faction = factions[planet_status['owner']]  
+        regen = planet_status['regenPerSecond']
+        health = planet_status['health']
+        maxhealth = planet_warinfo['maxHealth']
+        
         decay = round(regen * 3600 / maxhealth * 100, 2)
         progress = round((1 - health / maxhealth) * 100, 2)
     
-    position = api_data.get('planetStatus')[int(idx)]['position']
+    position = planet_status['position']
     x, y = position['x'], position['y']
     dist_to_se = round(math.sqrt(x**2 + y**2), 4)
    
