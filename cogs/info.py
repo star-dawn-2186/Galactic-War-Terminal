@@ -23,6 +23,7 @@ from parse_dss import get_dss_info
 from parse_assignment import parse_mo
 from horse import horse_predict
 from effcalc import calc_region_eff_from_name
+from libcalc import get_librate_from_idx
 
 
 class Info(commands.Cog):
@@ -80,9 +81,15 @@ class Info(commands.Cog):
         for order in orders:
             if os.path.isfile(mo_tracker_path):
                 for task in order['tasks']:
-                    delta = deltas[orders.index(order)][order['tasks'].index(task)]['delta']
-                    goal = task['goal']
-                    task['rate'] = round(delta / goal * 600, 2)
+                    if task['location_type'] == 'Planet' and task['type'] == 'Liberation':
+                        print(task)
+                        planet_name = task['location_index']
+                        idx, _ = name_to_idx(planet_name)
+                        task['rate'] = get_librate_from_idx(idx)[1]
+                    else:
+                        delta = deltas[orders.index(order)][order['tasks'].index(task)]['delta']
+                        goal = task['goal']
+                        task['rate'] = round(delta / goal * 600, 2)
             await ctx.reply(format_mo_progress(order))
 
     # ====================
@@ -103,7 +110,8 @@ class Info(commands.Cog):
         static, names, name = stats
         idx = static['id']
         # Avery ARG Special
-        arg = idx == 97
+        arg = False
+        # arg = idx == 97
         
 
         has_region = static['has regions']

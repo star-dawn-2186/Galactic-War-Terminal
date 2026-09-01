@@ -1,8 +1,8 @@
 import time
 import json
 import os
-from utils import MO_data
-from find_planets import name_to_idx
+from utils import MO_data, api_data, warinfo_data, planet_data
+from find_planets import name_to_idx, get_stats_by_name
 from config import EVENTS_DIR
 with open("json_data/assignments/tasks/task/type.json") as f:
     TYPES = json.load(f)
@@ -49,14 +49,25 @@ def parse_mo(mo_data):
                             value = ITEM_NAMES[str(value)]['name']
                         except:
                             value = f'item {value}'
-                        
                 task_dict[valuetype] = value
+                
+            if task_dict['location_type'] == 'Planet' and task_dict['type'] == 'Liberation':
+                planet_name = task_dict['location_index']
+                api, warinfo, planetdata = api_data(), warinfo_data(), planet_data()
+                stats, _, _ = get_stats_by_name(api, planetdata, warinfo, planet_name)
+                task_dict['goal'] = stats['maxhealth']
+                if stats['campaign'] == 'Already liberated':
+                    task_dict['progress'] = stats['maxhealth']
+                else:
+                    task_dict['progress'] = stats['maxhealth'] - stats['health']
+                
             task_list.append(task_dict)
             
         orders.append({'ddl': ddl,
                        'title': title,
                        'desc': desc,
                        'tasks': task_list})
+
     return orders
 
 def init_mo_tracker():

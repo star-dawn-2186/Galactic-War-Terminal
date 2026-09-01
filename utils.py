@@ -222,7 +222,7 @@ def format_mo_progress(order):
         task_txt = []
         for key in task:
             task_txt.append([key, str(task[key])])
-        if 'rate' in task:
+        if 'rate' in task and completion != 100:
             details += f"```{tabulate(task_txt, colalign=('left',))}```\n**{completion}% Complete**\n**{task['rate']}%/hr**\n===============\n"
         else:
             details += f"```{tabulate(task_txt, colalign=('left',))}```\n**{completion}% Complete**\n===============\n"
