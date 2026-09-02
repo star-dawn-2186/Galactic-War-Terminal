@@ -73,16 +73,17 @@ class Info(commands.Cog):
     @commands.has_any_role("Galactic War Leader", "Galactic War Advisor", "Turbo Nerd")
     async def progress_command(self, ctx):
         mo_data = MO_data()
+        print(mo_data)
         orders = parse_mo(mo_data)
         mo_tracker_path = os.path.join(EVENTS_DIR, 'mo_tracker.json')
         if os.path.isfile(mo_tracker_path):
             with open(mo_tracker_path, 'r') as f:
                 deltas = json.load(f)
         for order in orders:
+            print(order)
             if os.path.isfile(mo_tracker_path):
                 for task in order['tasks']:
                     if task['location_type'] == 'Planet' and task['type'] == 'Liberation':
-                        print(task)
                         planet_name = task['location_index']
                         idx, _ = name_to_idx(planet_name)
                         task['rate'] = get_librate_from_idx(idx)[1]

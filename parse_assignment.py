@@ -62,7 +62,7 @@ def parse_mo(mo_data):
                     task_dict['progress'] = stats['maxhealth'] - stats['health']
                 
             task_list.append(task_dict)
-            
+        print(task_list)
         orders.append({'ddl': ddl,
                        'title': title,
                        'desc': desc,

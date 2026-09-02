@@ -55,17 +55,17 @@ def img_to_stats(imgpath, debug = False):
     stats_path = imgname + '_processed.jpeg'
     stats = json.loads(ocr_space_file(stats_path))
     txt = stats['ParsedResults'][0]['ParsedText'].split('\n')
-    if debug:
-        print(txt)
 
     stats = {}
     for line in txt:
         try:
             l = line.split('\t')[:-1]
+            if debug:
+                print(l)
             stat_name = l[0].rstrip(':').upper()
         except IndexError:
             continue
-        if stat_name == 'HILLS': # lmao
+        if 'ILLS' in stat_name and 'MELEE' not in stat_name: # lmao
             stat_name = 'KILLS'
         if stat_name not in ['KILLS', 'ACCURACY', 'SHOTS FIRED', 'SHOTS HIT', 'DEATHS', 'STIMS USED', 'ACCIDENTALS', 'SAMPLES EXTRACTED', 'STRATAGEMS USED', 'MELEE KILLS']:
             continue
@@ -81,6 +81,7 @@ def img_to_stats(imgpath, debug = False):
                     values.append(float(num))
                 else:
                     values.append(int(num))
+
         stats[stat_name] = values
     
     if not debug:
@@ -97,5 +98,5 @@ def summary_from_stats(stats):
         
 
 if __name__ == '__main__':
-    players= img_to_stats('image.png', debug=True)
+    players= img_to_stats('207B071.JPG', debug=True)
     print(summary_from_stats(players))
