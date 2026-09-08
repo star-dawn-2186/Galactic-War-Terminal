@@ -98,5 +98,5 @@ def summary_from_stats(stats):
         
 
 if __name__ == '__main__':
-    players= img_to_stats('207B071.JPG', debug=True)
+    players= img_to_stats('image.png', debug=True)
     print(summary_from_stats(players))

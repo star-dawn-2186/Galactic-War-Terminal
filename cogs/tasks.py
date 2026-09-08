@@ -141,10 +141,24 @@ class Tasks(commands.Cog):
                             subfactions[str(idx)].append(effect)
             except Exception:
                 pass
+            
+        seaf = []
+        for idx in range(len(api.get('planetStatus'))):
+            if int(idx) == 274:
+                continue
+            effects, _ = get_effects_by_idx(api, idx)
+            try:
+                for effect in effects:
+                    if effect.lower == 'heavy seaf presence':
+                        seaf.append(idx)
+            except Exception:
+                pass
 
         defenses_path = os.path.join(LIBERATION_DIR, "defenses.txt")
         subfactions_path = os.path.join(LIBERATION_DIR, "subfactions.json")
         decays_path = os.path.join(LIBERATION_DIR, "decays.json")
+        seaf_path = os.path.join(LIBERATION_DIR, 'seaf.json')
+        
         init = False
         if not os.path.isfile(defenses_path):
             with open(defenses_path, 'w') as f:
@@ -157,6 +171,10 @@ class Tasks(commands.Cog):
         if not os.path.isfile(decays_path):
             with open(decays_path, 'w') as f:
                 json.dump(decays, f)
+            init = True
+        if not os.path.isfile(seaf_path):
+            with open(seaf_path, 'w') as f:
+                json.dump(seaf, f)
             init = True
 
         if init:
@@ -220,11 +238,31 @@ class Tasks(commands.Cog):
                 for sub in prev_subfactions[idx]:
                     if sub not in subfactions[idx]:
                         msg += f"{sub.upper()} no longer detected on: {name.upper()}\n"
+        
+        with open(seaf_path, 'r') as f:
+            prev_seaf = json.load(f)        
+        msg = "!!=== PRIORITY ALERT: SEAF MOVEMENT ===!!\n"
+        for idx in seaf:
+            _, name = name_to_idx(int(idx))
+            try:
+                stats, _, _ = get_stats_by_name(api, planets, warinfo, idx)
+            except:
+                continue
+            if stats['campaign'] != "Already liberated":
+                for idx in seaf:
+                    try:
+                        if idx not in prev_seaf:
+                            msg += f"HEAVY SEAF PRESENCE detected on: {name.upper()}\n"
+                    except KeyError:
+                        continue
+                for idx in prev_seaf:
+                    if idx not in seaf:
+                        msg += f"HEAVY SEAF PRESENCE no longer detected on: {name.upper()}\n"
 
         if msg.count('\n') > 1:
             await self.bot.get_channel(HANGOUT_CHANNEL).send(f"```{msg}```")
-        with open(subfactions_path, 'w') as f:
-            json.dump(subfactions, f)
+        with open(seaf_path, 'w') as f:
+            json.dump(seaf, f)
 
         if new_regions != []:
             msg = "!!== PRIORITY ALERT: NEW REGION DETECTED ==!!\n"

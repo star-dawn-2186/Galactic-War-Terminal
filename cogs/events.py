@@ -73,7 +73,7 @@ def gen_mo4_progress():
         )
 
         total_kills = _read_counter(os.path.join(EVENTS_DIR, 'kills.txt'))
-        goal_kills = 250000
+        goal_kills = 150000
 
         so4_met = (
             total_kills >= goal_kills
@@ -82,8 +82,10 @@ def gen_mo4_progress():
         )
 
         so4_state = 'Ongoing'
-        if time.time() >= mo4_ddl:
-            so4_state = 'Success' if so4_met else 'Failure'
+        if (not so4_met) and time.time() >= mo4_ddl:
+            so4_state = 'Failure'
+        elif so4_met:
+            so4_state = 'Success'
 
         sections.append(
             f"## SO4: {so4_state}\n"
