@@ -271,13 +271,18 @@ def cooldown_error_handler(prefix=""):
     return handler
 
 
-def increment_counter_file(filename: str, amount: int) -> int:
-    """Read-modify-write an integer counter file. Returns the new total."""
+def increment_counter_file(filename: str, amount):
+    """Read-modify-write a numeric counter file (int or float). Returns the new total."""
     prev = 0
     if os.path.isfile(filename):
         with open(filename, 'r') as f:
-            prev = int(f.read())
+            content = f.read().strip()
+            if content:
+                prev = float(content) if '.' in content else int(content)
     total = prev + amount
     with open(filename, 'w') as f:
-        f.write(str(total))
+        if isinstance(total, float) and not total.is_integer():
+            f.write(str(total))
+        else:
+            f.write(str(int(total)))
     return total

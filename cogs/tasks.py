@@ -124,7 +124,8 @@ class Tasks(commands.Cog):
         defenses = api.get('planetEvents')
         decays = {}
         subfactions = {}
-        for idx in range(len(api.get('planetStatus'))):
+        for p in api.get('planetStatus'):
+            idx = p['index']
             if int(idx) == 274:
                 continue
             subfactions[str(idx)] = []
@@ -143,13 +144,14 @@ class Tasks(commands.Cog):
                 pass
             
         seaf = []
-        for idx in range(len(api.get('planetStatus'))):
+        for p in api.get('planetStatus'):
+            idx = p['index']
             if int(idx) == 274:
                 continue
             effects, _ = get_effects_by_idx(api, idx)
             try:
                 for effect in effects:
-                    if effect.lower == 'heavy seaf presence':
+                    if 'seaf' in effect.lower():
                         seaf.append(idx)
             except Exception:
                 pass
@@ -238,6 +240,9 @@ class Tasks(commands.Cog):
                 for sub in prev_subfactions[idx]:
                     if sub not in subfactions[idx]:
                         msg += f"{sub.upper()} no longer detected on: {name.upper()}\n"
+        
+        with open(subfactions_path, 'w') as f:
+                    json.dump(subfactions, f)
         
         with open(seaf_path, 'r') as f:
             prev_seaf = json.load(f)        
@@ -490,7 +495,7 @@ class Tasks(commands.Cog):
         if msg is None:
             return
         try:
-            channel = self.bot.get_channel(1528736305012412487)
+            channel = self.bot.get_channel(1549251413748752524)
             latest = [m async for m in channel.history(limit=1)]
         except AttributeError:
             print("Channel history cannot be accessed")

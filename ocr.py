@@ -46,7 +46,7 @@ def ocr_space_file(filename, overlay=False, api_key='K87463386188957', language=
     return r.content.decode()
 
 def is_num(s):
-    num = s.replace('%','').replace(',','').replace('.','')
+    num = s.replace('%','').replace(',','').replace('.','').replace(' km', '')
     return num.isdigit()
     
 def img_to_stats(imgpath, debug = False):
@@ -67,7 +67,7 @@ def img_to_stats(imgpath, debug = False):
             continue
         if 'ILLS' in stat_name and 'MELEE' not in stat_name: # lmao
             stat_name = 'KILLS'
-        if stat_name not in ['KILLS', 'ACCURACY', 'SHOTS FIRED', 'SHOTS HIT', 'DEATHS', 'STIMS USED', 'ACCIDENTALS', 'SAMPLES EXTRACTED', 'STRATAGEMS USED', 'MELEE KILLS']:
+        if stat_name not in ['KILLS', 'ACCURACY', 'SHOTS FIRED', 'SHOTS HIT', 'DEATHS', 'STIMS USED', 'ACCIDENTALS', 'SAMPLES EXTRACTED', 'STRATAGEMS USED', 'MELEE KILLS', 'DISTANCE TRAVELED']:
             continue
         values = []
         for i in range(len(l)):
@@ -75,9 +75,9 @@ def img_to_stats(imgpath, debug = False):
                 values.append(0)
             elif not is_num(l[i]) and not is_num(l[i+1]):
                 values.append(0)
-            elif is_num(l[i]):
-                num = l[i].replace('%','').replace(',','')
-                if stat_name == 'ACCURACY':
+            if is_num(l[i]):
+                num = l[i].replace('%','').replace(',','').replace(' km','')
+                if stat_name == 'ACCURACY' or stat_name == 'DISTANCE TRAVELED':
                     values.append(float(num))
                 else:
                     values.append(int(num))
@@ -98,5 +98,5 @@ def summary_from_stats(stats):
         
 
 if __name__ == '__main__':
-    players= img_to_stats('image.png', debug=True)
+    players= img_to_stats('1.png', debug=True)
     print(summary_from_stats(players))

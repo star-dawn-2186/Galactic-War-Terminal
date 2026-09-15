@@ -17,23 +17,26 @@ from config import EVENTS_DIR
 
 
 def _read_counter(filepath):
+    """Read a numeric counter file (int or float), returning 0 if missing."""
     if os.path.isfile(filepath):
         with open(filepath, 'r') as f:
             content = f.read().strip()
-            return int(content) if content else 0
+            if not content:
+                return 0
+            return float(content) if '.' in content else int(content)
     return 0
 
 
 def build_leaderboard(logs):
     entries = []
     for player, stats in logs.items():
-        kill_vals = [
-            int(v) for v in stats.get('KILLS', []) if v != 'N/A'
+        dist_vals = [
+            float(v) for v in stats.get('DISTANCE TRAVELED', []) if v != 'N/A'
         ]
-        if not kill_vals:
+        if not dist_vals:
             continue
-        total = sum(kill_vals)
-        missions = len(kill_vals)
+        total = sum(dist_vals)
+        missions = len(dist_vals)
         avg = total / missions
         entries.append((player, total, avg, missions))
     entries.sort(key=lambda x: x[1], reverse=True)
@@ -42,24 +45,20 @@ def build_leaderboard(logs):
 
 def gen_mo4_progress():
 
-    mo4_ddl = 1788364740
+    mo4_ddl = 1789747140
     sections = []
     leaderboard = []
-    # --- TO-based objectives (event_to.json) ---
-    if os.path.isfile(os.path.join(EVENTS_DIR, 'event_to.json')):
-        with open(os.path.join(EVENTS_DIR, 'event_to.json'), 'r') as f:
-            TO_LOGS = json.load(f)
+    # --- Stats-based objectives (stratagems.txt / distance.txt) ---
+    if os.path.isfile(os.path.join(EVENTS_DIR, 'event.json')):
+        total_stratagems = _read_counter(os.path.join(EVENTS_DIR, 'stratagems.txt'))
+        total_distance = _read_counter(os.path.join(EVENTS_DIR, 'distance.txt'))
+        goal_stratagems = 10000
+        goal_distance = 600
 
-        count_swarm, count_hatcheries = 0, 0
-        for player in TO_LOGS:
-            count_swarm += TO_LOGS[player].get('Eradicate_Terminid_Swarm', 0)
-            count_hatcheries += TO_LOGS[player].get('Purge_Hatcheries', 0)
-
-        api, planet, warinfo = api_data(), planet_data(), warinfo_data()
-        brilliance_stats, _, _ = get_stats_by_name(api, planet, warinfo, 'brilliance')
-        progress = brilliance_stats['progress']
-        
-        mo4_met = progress == 100
+        mo4_met = (
+            total_stratagems >= goal_stratagems
+            and total_distance >= goal_distance
+        )
 
         mo4_state = 'Ongoing'
         if time.time() >= mo4_ddl:
@@ -68,32 +67,45 @@ def gen_mo4_progress():
         sections.append(
             f"## MO4: {mo4_state}\n"
             f"Ends: <t:{mo4_ddl}:R>\n"
-            f"- Brilliance: **{progress}**% Liberated"
-
+            f"- Stratagems used: **{total_stratagems}**/{goal_stratagems}\n"
+            f"- Distance traveled: **{total_distance:.1f}**/{goal_distance} km"
         )
 
-        total_kills = _read_counter(os.path.join(EVENTS_DIR, 'kills.txt'))
-        goal_kills = 150000
-
-        so4_met = (
-            total_kills >= goal_kills
-            and count_swarm >= 200
-            and count_hatcheries >= 50
-        )
-
-        so4_state = 'Ongoing'
-        if (not so4_met) and time.time() >= mo4_ddl:
-            so4_state = 'Failure'
-        elif so4_met:
-            so4_state = 'Success'
-
-        sections.append(
-            f"## SO4: {so4_state}\n"
-            f"Ends: <t:{mo4_ddl}:R>\n"
-            f"- Terminid Kills: **{total_kills}**/{goal_kills}\n"
-            f"- Terminid Swarms eradicated: **{count_swarm}**/200\n"
-            f"- Hatcheries purged: **{count_hatcheries}**/50"
-        )
+        # --- SO4 (disabled) ---
+        # with open(os.path.join(EVENTS_DIR, 'event_to.json'), 'r') as f:
+        #     TO_LOGS = json.load(f)
+        #
+        # count_swarm, count_hatcheries = 0, 0
+        # for player in TO_LOGS:
+        #     count_swarm += TO_LOGS[player].get('Eradicate_Terminid_Swarm', 0)
+        #     count_hatcheries += TO_LOGS[player].get('Purge_Hatcheries', 0)
+        #
+        # api, planet, warinfo = api_data(), planet_data(), warinfo_data()
+        # brilliance_stats, _, _ = get_stats_by_name(api, planet, warinfo, 'brilliance')
+        # progress = brilliance_stats['progress']
+        #
+        # total_kills = _read_counter(os.path.join(EVENTS_DIR, 'kills.txt'))
+        # goal_kills = 150000
+        #
+        # so4_met = (
+        #     total_kills >= goal_kills
+        #     and count_swarm >= 200
+        #     and count_hatcheries >= 50
+        # )
+        #
+        # so4_state = 'Ongoing'
+        # if (not so4_met) and time.time() >= mo4_ddl:
+        #     so4_state = 'Failure'
+        # elif so4_met:
+        #     so4_state = 'Success'
+        #
+        # sections.append(
+        #     f"## SO4: {so4_state}\n"
+        #     f"Ends: <t:{mo4_ddl}:R>\n"
+        #     f"- Terminid Kills: **{total_kills}**/{goal_kills}\n"
+        #     f"- Terminid Swarms eradicated: **{count_swarm}**/200\n"
+        #     f"- Hatcheries purged: **{count_hatcheries}**/50"
+        # )
 
         if mo4_state != 'Ongoing':
             os.rename(
@@ -112,16 +124,16 @@ def gen_mo4_progress():
         with open(os.path.join(EVENTS_DIR, 'event.json'), 'r') as f:
             LOGS = json.load(f)
 
-        # --- Kills Leaderboard ---
+        # --- Distance Leaderboard ---
         leaderboard = build_leaderboard(LOGS)
         if leaderboard:
             table_data = [
-                (player, total, f"{avg:.1f}")
+                (player, f"{total:.1f}", f"{avg:.1f}")
                 for player, total, avg, _ in leaderboard[:5]
             ]
             table = tabulate(
                 table_data,
-                headers=['Player', 'Kills', 'Avg/Mission'],
+                headers=['Player', 'Distance (km)', 'Avg/Mission'],
                 tablefmt='plain'
             )
             sections.append(f"```{table}```")
@@ -150,10 +162,10 @@ class Events(commands.Cog):
                 break
         if rank is not None:
             player_entry = leaderboard[rank - 1]
-            table_data = [(rank, player_entry[1], f"{player_entry[2]:.1f}")]
+            table_data = [(rank, f"{player_entry[1]:.1f}", f"{player_entry[2]:.1f}")]
             table = tabulate(
                 table_data,
-                headers=['Rank', 'Kills', 'Avg/Mission'],
+                headers=['Rank', 'Distance (km)', 'Avg/Mission'],
                 tablefmt='plain'
             )
             msg += f"\n### Your stats:\n```\n{table}\n```"
@@ -178,7 +190,7 @@ class Events(commands.Cog):
             return await ctx.reply("TO Event initiated.")
         with open(os.path.join(EVENTS_DIR, 'event.json'), 'w') as f:
             json.dump(init_json, f)
-        for counter in ('kills.txt',):
+        for counter in ('stratagems.txt', 'distance.txt'):
             with open(os.path.join(EVENTS_DIR, counter), 'w') as f:
                 f.write('0')
         return await ctx.reply("Event initiated.")
@@ -271,8 +283,13 @@ class Events(commands.Cog):
         for stat in stats:
             player_stats[stat] = stats[stat][idx]
 
-        kills = int(sum([int(i) for i in stats['KILLS'] if i != 'N/A']))
-        increment_counter_file(os.path.join(EVENTS_DIR, 'kills.txt'), kills)
+        stratagems = int(sum([int(i) for i in stats['STRATAGEMS USED'] if i != 'N/A']))
+        increment_counter_file(os.path.join(EVENTS_DIR, 'stratagems.txt'), stratagems)
+        try:
+            distance = float(sum([float(i) for i in stats['DISTANCE TRAVELED'] if i != 'N/A']))
+            increment_counter_file(os.path.join(EVENTS_DIR, 'distance.txt'), distance)
+        except:
+            pass
 
         with open(os.path.join(EVENTS_DIR, 'event.json'), 'r') as f:
             LOGS = json.load(f)
@@ -287,6 +304,9 @@ class Events(commands.Cog):
                     LOGS[player][stat].append('N/A')
                 else:
                     LOGS[player][stat].append(player_stats[stat])
+            for stat in player_stats:
+                if stat not in LOGS[player]:
+                    LOGS[player][stat] = [player_stats[stat]]
 
         with open(os.path.join(EVENTS_DIR, 'event.json'), 'w') as f:
             json.dump(LOGS, f)
